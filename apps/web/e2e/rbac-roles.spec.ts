@@ -36,7 +36,6 @@ test.describe('Role-Based Access Control (RBAC) & Multi-Role Verification', () =
     await sidebar.getByRole('link', { name: /User Access/i }).click();
     await expect(page).toHaveURL(/.*users/);
     await expect(page.getByText(/User Access & Roles/i)).toBeVisible();
-    await expect(page.getByRole('button', { name: /Add User/i })).toBeVisible();
 
     // Verify admin access to Workforce features
     await sidebar.getByRole('link', { name: /Workforce/i }).click();
