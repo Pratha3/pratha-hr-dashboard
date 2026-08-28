@@ -13,6 +13,7 @@ dist
 build
 .next
 out
+test-results
 
 # Prisma
 /prisma/*.db
