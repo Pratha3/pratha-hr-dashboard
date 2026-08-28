@@ -34,6 +34,7 @@ import {
   SheetTitle
 } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { ProfileSettingsModal } from '@/components/modals/profile-settings-modal';
 import { cn } from '@/lib/utils';
 import { Permissions, PermissionName } from '@ems/shared-types';
 
@@ -94,6 +95,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, hasPermission, logout } = useAuth();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const filteredNavItems = NAV_ITEMS.filter(
     (item) => !item.permission || hasPermission(item.permission)
@@ -203,7 +205,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Mobile User Profile & Logout */}
             {user && (
               <div className="p-4 border-t bg-muted/20 space-y-3">
-                <div className="flex items-center gap-3">
+                <div
+                  onClick={() => {
+                    setMobileOpen(false);
+                    setProfileModalOpen(true);
+                  }}
+                  className="flex items-center gap-3 p-2 rounded-lg bg-card border shadow-xs cursor-pointer hover:border-foreground/20 transition-all"
+                  title="Click to edit profile & security settings"
+                >
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>{user.firstName?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
@@ -277,12 +286,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* User Profile Card & Collapse Toggle */}
             <div className="p-2.5 border-t bg-muted/10 space-y-2">
               {!sidebarCollapsed && user && (
-                <div className="flex items-center gap-2.5 p-2 rounded-lg bg-card border shadow-xs">
+                <div
+                  onClick={() => setProfileModalOpen(true)}
+                  className="flex items-center gap-2.5 p-2 rounded-lg bg-card border shadow-xs cursor-pointer hover:border-foreground/30 transition-all group"
+                  title="Click to edit profile & security settings"
+                >
                   <Avatar className="h-8 w-8">
                     <AvatarFallback>{user.firstName?.[0] || 'U'}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-foreground truncate">
+                    <p className="text-xs font-semibold text-foreground truncate group-hover:underline">
                       {user.firstName} {user.lastName}
                     </p>
                     <div className="flex items-center gap-1 mt-0.5">
@@ -354,6 +367,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </main>
         </div>
+
+        {/* Profile & Security Settings Modal */}
+        <ProfileSettingsModal
+          open={profileModalOpen}
+          onOpenChange={setProfileModalOpen}
+        />
       </div>
     </TooltipProvider>
   );

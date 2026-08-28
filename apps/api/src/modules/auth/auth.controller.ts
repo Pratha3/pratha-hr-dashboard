@@ -107,6 +107,15 @@ export class AuthController {
     }
   };
 
+  updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const user = await this.service.updateProfile(req.user!.id, req.body);
+      sendSuccess(res, { user });
+    } catch (err) {
+      next(err);
+    }
+  };
+
   changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.service.changePassword(req.user!.id, req.body);

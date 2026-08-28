@@ -30,6 +30,7 @@ authRouter.post(
 
 // Protected auth endpoints (Requires valid JWT access token + live active user check)
 authRouter.get('/me', authMiddleware, authController.me);
+authRouter.patch('/profile', authMiddleware, authController.updateProfile);
 authRouter.post('/logout-all', authMiddleware, authController.logoutAll);
 authRouter.post(
   '/change-password',

@@ -208,6 +208,24 @@ export class AuthService {
     return this.formatUser(user);
   }
 
+  async updateProfile(
+    userId: string,
+    data: { firstName?: string; lastName?: string; phone?: string }
+  ): Promise<UserSummary & { permissions: PermissionName[] }> {
+    const user = await this.repo.findUserById(userId);
+    if (!user || !user.isActive) {
+      throw new AuthenticationError('User not found or deactivated');
+    }
+
+    const updated = await this.repo.updateUser(userId, {
+      ...(data.firstName !== undefined ? { firstName: data.firstName.trim() } : {}),
+      ...(data.lastName !== undefined ? { lastName: data.lastName.trim() } : {}),
+      ...(data.phone !== undefined ? { phone: data.phone.trim() } : {})
+    });
+
+    return this.formatUser(updated);
+  }
+
   async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
     const user = await this.repo.findUserById(userId);
     if (!user || !user.isActive) {

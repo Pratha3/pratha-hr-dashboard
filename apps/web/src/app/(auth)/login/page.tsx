@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -135,7 +136,18 @@ export default function LoginPage() {
               </div>
             </FormField>
 
-            <FormField label="Password" error={errors.password?.message} required>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-medium text-foreground">
+                  Password <span className="text-destructive">*</span>
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-[11px] text-muted-foreground hover:text-foreground transition-colors hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
@@ -148,7 +160,10 @@ export default function LoginPage() {
                   autoComplete="current-password"
                 />
               </div>
-            </FormField>
+              {errors.password && (
+                <p className="text-[11px] text-destructive mt-1 font-medium">{errors.password.message}</p>
+              )}
+            </div>
 
             <Button
               type="submit"
