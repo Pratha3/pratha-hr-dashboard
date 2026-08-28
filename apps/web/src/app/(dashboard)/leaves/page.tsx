@@ -119,7 +119,7 @@ export default function LeavesPage() {
         return <Badge variant="secondary" className="text-[10px]">Cancelled</Badge>;
       case 'PENDING':
       default:
-        return <Badge variant="brass" className="text-[10px]">Pending Review</Badge>;
+        return <Badge variant="warning" className="text-[10px]">Pending Review</Badge>;
     }
   };
 

@@ -129,7 +129,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             />
             {(!sidebarCollapsed || isMobile) && <span>{item.label}</span>}
             {isActive && (!sidebarCollapsed || isMobile) && (
-              <div className="ml-auto h-1.5 w-1.5 rounded-full bg-brass-400" />
+              <div className="ml-auto h-1.5 w-1.5 rounded-full bg-primary" />
             )}
           </Link>
         );
@@ -154,7 +154,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Mobile Header Bar */}
         <header className="lg:hidden flex items-center justify-between px-4 h-16 border-b bg-card/95 backdrop-blur-md sticky top-0 z-40">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 via-primary to-violet-600 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold font-display shadow-xs">
               N
             </div>
             <div className="flex flex-col">
@@ -182,7 +182,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <SheetContent side="left" className="w-72 p-0 flex flex-col bg-card">
             <SheetHeader className="p-5 border-b text-left">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-indigo-500 via-primary to-violet-600 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
+                <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold font-display shadow-xs">
                   N
                 </div>
                 <div>
@@ -214,7 +214,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       {user.firstName} {user.lastName}
                     </p>
                     <Badge
-                      variant={user.role?.name === 'ADMIN' ? 'brass' : 'secondary'}
+                      variant={user.role?.name === 'ADMIN' ? 'indigo' : 'secondary'}
                       className="text-[9px] px-1.5 py-0 h-4 mt-0.5"
                     >
                       {user.role?.name || 'USER'}
@@ -250,7 +250,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Logo & Brand */}
             <div className="h-16 flex items-center justify-between px-5 border-b">
               <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
-                <div className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-indigo-500 via-primary to-violet-600 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
+                <div className="h-8 w-8 shrink-0 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold font-display shadow-xs">
                   N
                 </div>
                 {!sidebarCollapsed && (
@@ -289,7 +289,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <Badge
-                        variant={user.role?.name === 'ADMIN' ? 'brass' : 'secondary'}
+                        variant={user.role?.name === 'ADMIN' ? 'indigo' : 'secondary'}
                         className="text-[10px] px-1.5 py-0 h-4"
                       >
                         {user.role?.name || 'USER'}

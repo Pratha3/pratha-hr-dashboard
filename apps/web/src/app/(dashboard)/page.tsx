@@ -103,7 +103,7 @@ export default function DashboardOverviewPage() {
         title="Executive Overview"
         description={`Welcome back, ${user?.firstName} ${user?.lastName}. Here is your organizational overview for today.`}
         badge={
-          <Badge variant={user?.role?.name === 'ADMIN' ? 'brass' : 'secondary'}>
+          <Badge variant={user?.role?.name === 'ADMIN' ? 'indigo' : 'secondary'}>
             {user?.role?.name} Portal
           </Badge>
         }
@@ -118,7 +118,7 @@ export default function DashboardOverviewPage() {
             </Button>
           )}
           {canManageWorkforce && (
-            <Button asChild size="sm" variant="brass" className="gap-1.5 text-xs font-semibold shadow-sm">
+            <Button asChild size="sm" variant="default" className="gap-1.5 text-xs font-semibold shadow-xs">
               <Link href="/employees">
                 <Users className="h-3.5 w-3.5" />
                 <span>Explore Directory</span>
@@ -174,12 +174,12 @@ export default function DashboardOverviewPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="rounded-2xl border border-executive-700/60 bg-gradient-to-r from-card via-card/90 to-primary/5 p-6 sm:p-8 shadow-sm relative overflow-hidden"
+        className="rounded-xl border bg-card p-6 sm:p-7 shadow-xs relative overflow-hidden"
       >
-        <div className="max-w-2xl space-y-3">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brass-500/10 text-brass-400 text-xs font-semibold border border-brass-500/20">
+        <div className="max-w-2xl space-y-2.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Unified People Operations Platform</span>
+            <span>People Operations Platform</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-display">
             Welcome to your Workforce Command Center

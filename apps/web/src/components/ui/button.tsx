@@ -5,28 +5,28 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none active:scale-[0.98]',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-xs font-medium transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 select-none active:scale-[0.98]',
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 shadow-primary/20',
+          'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
+          'bg-destructive/90 text-destructive-foreground shadow-xs hover:bg-destructive',
         outline:
-          'border border-input bg-background shadow-sm hover:bg-muted hover:text-foreground',
+          'border border-input bg-card/60 shadow-xs hover:bg-muted/70 hover:text-foreground',
         secondary:
-          'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
-        ghost: 'hover:bg-muted hover:text-foreground',
+          'bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80',
+        ghost: 'hover:bg-muted/60 hover:text-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
         brass:
-          'bg-gradient-to-r from-brass-600 to-brass-500 text-white shadow-md shadow-brass-600/20 hover:from-brass-500 hover:to-brass-400 font-semibold'
+          'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90 font-semibold'
       },
       size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-10 rounded-md px-8 text-base',
-        icon: 'h-9 w-9'
+        default: 'h-8.5 px-3.5 py-1.5',
+        sm: 'h-7.5 rounded-md px-2.5 text-xs',
+        lg: 'h-9.5 rounded-md px-6 text-sm',
+        icon: 'h-8 w-8'
       }
     },
     defaultVariants: {
@@ -64,7 +64,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         {...props}
       >
-        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        {isLoading && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
         {children}
       </button>
     );

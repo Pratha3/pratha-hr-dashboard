@@ -66,12 +66,12 @@ export default function LoginPage() {
   // If session is being verified or user is already logged in, show sleek loading indicator
   if (isLoading || user) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-executive-950">
+      <div className="min-h-screen w-full flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary via-blue-600 to-brass-500 flex items-center justify-center text-white font-bold font-display text-xl animate-pulse shadow-lg shadow-primary/25">
-            P
+          <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold font-display text-lg animate-pulse shadow-sm">
+            N
           </div>
-          <p className="text-xs font-mono text-muted-foreground animate-pulse">
+          <p className="text-xs text-muted-foreground animate-pulse">
             {user ? 'Redirecting to Dashboard...' : 'Verifying active session...'}
           </p>
         </div>
@@ -80,22 +80,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-executive-950 via-executive-900 to-executive-950 relative overflow-hidden">
-      {/* Subtle background glow */}
-      <div className="absolute top-1/4 -left-32 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-brass-600/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-background relative selection:bg-primary/20">
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
         className="w-full max-w-md"
       >
         {/* Card */}
-        <div className="rounded-2xl border border-executive-700/80 bg-card/85 backdrop-blur-xl shadow-2xl p-7 sm:p-8 space-y-6">
+        <div className="rounded-xl border bg-card/95 shadow-xl p-6 sm:p-8 space-y-6">
           {/* Logo & Header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 via-primary to-violet-600 items-center justify-center text-white font-bold font-display text-xl shadow-lg shadow-primary/25 mb-1">
+            <div className="inline-flex h-11 w-11 rounded-lg bg-primary items-center justify-center text-primary-foreground font-bold font-display text-lg shadow-sm mb-1">
               N
             </div>
             <h1 className="text-2xl font-bold font-display tracking-tight text-foreground">
@@ -151,7 +147,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full h-10 gap-2 font-semibold shadow-md shadow-primary/20"
+              className="w-full h-10 gap-2 font-semibold shadow-xs"
               isLoading={isSubmitting}
             >
               <span>Authenticate Session</span>
@@ -162,8 +158,8 @@ export default function LoginPage() {
           {/* Dev Quick Fill Pill Controls */}
           <div className="pt-2 border-t border-border/80">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                <KeyRound className="h-3 w-3 text-brass-500" />
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider flex items-center gap-1 font-medium">
+                <KeyRound className="h-3 w-3 text-primary" />
                 Quick Dev Credentials:
               </span>
             </div>
@@ -171,11 +167,11 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => fillDevCredentials('admin')}
-                className="px-3 py-2 rounded-md border border-executive-700 bg-muted/30 hover:bg-muted text-left transition-colors cursor-pointer group"
+                className="px-3 py-2 rounded-md border bg-muted/30 hover:bg-muted/60 text-left transition-colors cursor-pointer group"
               >
                 <div className="text-xs font-semibold text-foreground group-hover:text-primary transition-colors flex items-center justify-between">
                   <span>Admin</span>
-                  <span className="text-[10px] text-brass-400 font-mono">Full</span>
+                  <span className="text-[10px] text-primary font-mono">Full</span>
                 </div>
                 <div className="text-[10px] text-muted-foreground font-mono truncate">
                   admin@pratha.com

@@ -132,7 +132,7 @@ export default function EmployeesPage() {
       case 'ACTIVE':
         return <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">Active</Badge>;
       case 'PROBATION':
-        return <Badge variant="brass">Probation</Badge>;
+        return <Badge variant="warning">Probation</Badge>;
       case 'NOTICE_PERIOD':
         return <Badge variant="secondary" className="bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/30">Notice Period</Badge>;
       default:
@@ -268,7 +268,7 @@ export default function EmployeesPage() {
                               {user.firstName} {user.lastName}
                             </span>
                             {user.role?.name === 'ADMIN' && (
-                              <Shield className="h-3 w-3 text-brass-500" />
+                              <Shield className="h-3 w-3 text-primary" />
                             )}
                           </div>
                           <div className="text-[11px] text-muted-foreground truncate">

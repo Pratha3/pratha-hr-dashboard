@@ -72,10 +72,10 @@ export default function UsersPage() {
       />
 
       {/* Security Governance Notice */}
-      <Card className="border-brass-500/30 bg-brass-500/5">
+      <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="py-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-brass-500/10 text-brass-500 border border-brass-500/20">
+            <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
               <Lock className="h-5 w-5" />
             </div>
             <div>
@@ -146,7 +146,7 @@ export default function UsersPage() {
                           <div className="font-semibold text-foreground flex items-center gap-1.5">
                             <span>{account.firstName} {account.lastName}</span>
                             {account.role?.name === 'ADMIN' && (
-                              <Shield className="h-3 w-3 text-brass-500" />
+                              <Shield className="h-3 w-3 text-primary" />
                             )}
                           </div>
                           <div className="text-[11px] text-muted-foreground">{account.email}</div>
@@ -156,7 +156,7 @@ export default function UsersPage() {
 
                     <td className="py-3 px-4 font-mono text-[11px]">
                       <Badge
-                        variant={account.role?.name === 'ADMIN' ? 'brass' : account.role?.name === 'HR' ? 'secondary' : 'outline'}
+                        variant={account.role?.name === 'ADMIN' ? 'indigo' : account.role?.name === 'HR' ? 'secondary' : 'outline'}
                         className="text-[10px]"
                       >
                         {account.role?.name}

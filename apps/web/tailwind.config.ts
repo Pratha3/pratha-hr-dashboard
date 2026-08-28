@@ -51,31 +51,32 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        brass: {
-          50: '#FFFBEB',
-          100: '#FEF3C7',
-          200: '#FDE68A',
-          300: '#FCD34D',
-          400: '#FBBF24',
-          500: '#F59E0B',
-          600: '#D97706',
-          700: '#B45309',
-          800: '#92400E',
-          900: '#78350F'
-        },
-        executive: {
-          950: '#070A11',
-          900: '#0B0F19',
-          850: '#0F172A',
-          800: '#111827',
-          700: '#1E293B',
-          600: '#334155',
-          500: '#475569',
-          400: '#64748B',
-          300: '#94A3B8',
-          200: '#CBD5E1',
-          100: '#E2E8F0',
+        slate: {
+          950: '#0B0E14',
+          900: '#101520',
+          850: '#161D2B',
+          800: '#1C2436',
+          700: '#2A364E',
+          600: '#415273',
+          500: '#62779F',
+          400: '#8E9FB8',
+          300: '#B8C4D6',
+          200: '#DAE1EB',
+          100: '#EEF2F6',
           50: '#F8FAFC'
+        },
+        indigo: {
+          50: '#EEF2FF',
+          100: '#E0E7FF',
+          200: '#C7D2FE',
+          300: '#A5B4FC',
+          400: '#818CF8',
+          500: '#6366F1',
+          600: '#4F46E5',
+          700: '#4338CA',
+          800: '#3730A3',
+          900: '#312E81',
+          950: '#1E1B4B'
         }
       },
       borderRadius: {
@@ -84,9 +85,9 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)'
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        display: ['Plus Jakarta Sans', 'Outfit', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace']
       },
       keyframes: {
         'accordion-down': {
