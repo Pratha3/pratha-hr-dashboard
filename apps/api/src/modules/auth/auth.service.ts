@@ -68,7 +68,8 @@ export class AuthService {
     const isPasswordValid = await verifyPassword(input.password, user.passwordHash);
 
     if (!isPasswordValid) {
-      const attempts = user.failedLoginAttempts + 1;
+      const isPostLockout = Boolean(user.lockedUntil && user.lockedUntil <= new Date());
+      const attempts = isPostLockout ? 1 : user.failedLoginAttempts + 1;
       const isLocked = attempts >= MAX_FAILED_ATTEMPTS;
 
       await this.repo.updateUser(user.id, {

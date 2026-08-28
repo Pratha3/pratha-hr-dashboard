@@ -30,7 +30,7 @@ export class AnnouncementsController {
 
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await this.service.deleteAnnouncement(req.params.id);
+      await this.service.deleteAnnouncement(req.params.id, req.user!.id);
       sendSuccess(res, { deleted: true });
     } catch (err) {
       next(err);

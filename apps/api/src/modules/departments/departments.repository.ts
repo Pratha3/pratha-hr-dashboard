@@ -34,17 +34,17 @@ export class DepartmentsRepository {
     });
   }
 
-  async create(data: { name: string; description?: string }) {
+  async create(data: { name: string; description?: string | null }) {
     return prisma.department.create({
       data: {
         name: data.name,
-        description: data.description,
+        description: data.description ?? null,
         isActive: true
       }
     });
   }
 
-  async update(id: string, data: { name?: string; description?: string; isActive?: boolean }) {
+  async update(id: string, data: { name?: string; description?: string | null; isActive?: boolean }) {
     return prisma.department.update({
       where: { id },
       data

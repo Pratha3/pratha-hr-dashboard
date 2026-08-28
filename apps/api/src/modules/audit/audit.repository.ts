@@ -1,16 +1,36 @@
 import { prisma } from '../../config/database';
+import { Prisma } from '@prisma/client';
+import { AuditLogQueryInput } from '@ems/validation';
 
 export class AuditRepository {
-  async findAll(page = 1, limit = 15, search?: string) {
+  async findAll(params: AuditLogQueryInput) {
+    const {
+      page = 1,
+      limit = 15,
+      search,
+      userId,
+      action,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = params;
+
     const skip = (page - 1) * limit;
-    const where = search
-      ? {
-          OR: [
-            { action: { contains: search, mode: 'insensitive' as const } },
-            { entity: { contains: search, mode: 'insensitive' as const } }
-          ]
-        }
-      : {};
+
+    const cleanSearch = search?.trim();
+
+    const where: Prisma.AuditLogWhereInput = {
+      ...(userId ? { userId } : {}),
+      ...(action ? { action: { equals: action, mode: 'insensitive' } } : {}),
+      ...(cleanSearch
+        ? {
+            OR: [
+              { action: { contains: cleanSearch, mode: 'insensitive' as const } },
+              { entity: { contains: cleanSearch, mode: 'insensitive' as const } },
+              { entityId: { contains: cleanSearch, mode: 'insensitive' as const } }
+            ]
+          }
+        : {})
+    };
 
     const [total, logs] = await Promise.all([
       prisma.auditLog.count({ where }),
@@ -18,6 +38,9 @@ export class AuditRepository {
         where,
         skip,
         take: limit,
+        orderBy: {
+          [sortBy]: sortOrder
+        },
         include: {
           user: {
             select: {
@@ -27,8 +50,7 @@ export class AuditRepository {
               email: true
             }
           }
-        },
-        orderBy: { createdAt: 'desc' }
+        }
       })
     ]);
 
@@ -38,10 +60,13 @@ export class AuditRepository {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPreviousPage: page > 1
       }
     };
   }
 }
 
 export const auditRepository = new AuditRepository();
+

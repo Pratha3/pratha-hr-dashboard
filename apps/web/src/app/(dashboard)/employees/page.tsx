@@ -61,7 +61,7 @@ import { toast } from 'sonner';
 
 export default function EmployeesPage() {
   const queryClient = useQueryClient();
-  const { hasPermission } = useAuth();
+  const { user: currentUser, hasPermission } = useAuth();
 
   const canCreate = hasPermission(Permissions.USER_CREATE);
   const canUpdate = hasPermission(Permissions.USER_UPDATE);
@@ -337,12 +337,21 @@ export default function EmployeesPage() {
                               {user.isActive ? (
                                 <DropdownMenuItem
                                   className="text-destructive focus:text-destructive"
-                                  onClick={() =>
-                                    statusMutation.mutate({ id: user.id, isActive: false })
-                                  }
+                                  disabled={user.id === currentUser?.id}
+                                  onClick={() => {
+                                    if (user.id === currentUser?.id) {
+                                      toast.error('You cannot deactivate your own account');
+                                      return;
+                                    }
+                                    statusMutation.mutate({ id: user.id, isActive: false });
+                                  }}
                                 >
                                   <UserX className="h-3.5 w-3.5" />
-                                  <span>Deactivate Member</span>
+                                  <span>
+                                    {user.id === currentUser?.id
+                                      ? 'Self (Active)'
+                                      : 'Deactivate Member'}
+                                  </span>
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem

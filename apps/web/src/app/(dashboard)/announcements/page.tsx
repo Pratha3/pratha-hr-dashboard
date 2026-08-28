@@ -33,14 +33,8 @@ import { Megaphone, Plus, Trash2, Calendar, Search, Pin } from 'lucide-react';
 import { useAuth } from '@/providers/auth-provider';
 import { apiClient } from '@/lib/api-client';
 import { Permissions, AnnouncementDto } from '@ems/shared-types';
+import { createAnnouncementSchema, CreateAnnouncementInput } from '@ems/validation';
 import { toast } from 'sonner';
-
-const announcementSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  content: z.string().min(10, 'Content must be at least 10 characters')
-});
-
-type AnnouncementInput = z.infer<typeof announcementSchema>;
 
 export default function AnnouncementsPage() {
   const queryClient = useQueryClient();
@@ -195,11 +189,11 @@ function CreateAnnouncementModal({
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm<AnnouncementInput>({
-    resolver: zodResolver(announcementSchema)
+  } = useForm<CreateAnnouncementInput>({
+    resolver: zodResolver(createAnnouncementSchema)
   });
 
-  const onSubmit = async (data: AnnouncementInput) => {
+  const onSubmit = async (data: CreateAnnouncementInput) => {
     setIsSubmitting(true);
     try {
       await apiClient.post('/announcements', data);

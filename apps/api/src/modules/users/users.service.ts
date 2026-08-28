@@ -186,6 +186,10 @@ export class UsersService {
     input: UpdateUserStatusInput,
     actorId?: string
   ): Promise<UserSummary> {
+    if (actorId && actorId === id && !input.isActive) {
+      throw new ConflictError('You cannot deactivate your own account');
+    }
+
     const user = await this.repo.findUserById(id);
     if (!user) {
       throw new NotFoundError('User record not found');
@@ -217,6 +221,10 @@ export class UsersService {
     const user = await this.repo.findUserById(id);
     if (!user) {
       throw new NotFoundError('User record not found');
+    }
+
+    if (actorId && actorId === id && input.roleId !== user.roleId) {
+      throw new ConflictError('You cannot change your own role');
     }
 
     const updated = await this.repo.updateUser(id, {

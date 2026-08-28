@@ -90,7 +90,7 @@ describe('Auth Security & Unit Tests', () => {
     });
 
     it('should throw generic AuthenticationError if user is not found', async () => {
-      vi.mocked(mockRepo.findUserByEmail).mockResolvedValue(null);
+      (mockRepo.findUserByEmail as any).mockResolvedValue(null);
 
       await expect(
         authService.login({ email: 'unknown@pratha.com', password: 'Password@123' })
@@ -99,7 +99,7 @@ describe('Auth Security & Unit Tests', () => {
 
     it('should lock account after 5 failed login attempts', async () => {
       const passwordHash = await hashPassword('Correct@123');
-      vi.mocked(mockRepo.findUserByEmail).mockResolvedValue({
+      (mockRepo.findUserByEmail as any).mockResolvedValue({
         id: 'user-1',
         email: 'locked@pratha.com',
         passwordHash,
@@ -122,10 +122,35 @@ describe('Auth Security & Unit Tests', () => {
       );
     });
 
+    it('should reset failed login count to 1 on first failed attempt after lockout expires', async () => {
+      const passwordHash = await hashPassword('Correct@123');
+      (mockRepo.findUserByEmail as any).mockResolvedValue({
+        id: 'user-1',
+        email: 'expired-lock@pratha.com',
+        passwordHash,
+        failedLoginAttempts: 5,
+        lockedUntil: new Date(Date.now() - 60000), // Lockout expired 1 min ago
+        isActive: true,
+        role: { name: 'ADMIN', rolePermissions: [] }
+      } as any);
+
+      await expect(
+        authService.login({ email: 'expired-lock@pratha.com', password: 'WrongPasswordAgain!' })
+      ).rejects.toThrow('Invalid email or password');
+
+      expect(mockRepo.updateUser).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({
+          failedLoginAttempts: 1,
+          lockedUntil: null
+        })
+      );
+    });
+
     it('should detect refresh token reuse and revoke the entire token family', async () => {
       const tokenHash = hashToken('already-used-refresh-token');
 
-      vi.mocked(mockRepo.findRefreshTokenByHash).mockResolvedValue({
+      (mockRepo.findRefreshTokenByHash as any).mockResolvedValue({
         id: 'token-1',
         userId: 'user-1',
         tokenHash,
@@ -144,7 +169,7 @@ describe('Auth Security & Unit Tests', () => {
 
     it('should change password and revoke all active refresh tokens', async () => {
       const oldHash = await hashPassword('OldPassword@123');
-      vi.mocked(mockRepo.findUserById).mockResolvedValue({
+      (mockRepo.findUserById as any).mockResolvedValue({
         id: 'user-1',
         email: 'test@pratha.com',
         passwordHash: oldHash,
@@ -168,3 +193,4 @@ describe('Auth Security & Unit Tests', () => {
     });
   });
 });
+

@@ -24,7 +24,7 @@ export function getAccessToken(): string | null {
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-  return match ? match[2] : null;
+  return match ? decodeURIComponent(match[2]) : null;
 }
 
 // Request Interceptor: Attach Access Token & CSRF Token
@@ -116,8 +116,13 @@ apiClient.interceptors.response.use(
       } catch (refreshErr) {
         processQueue(refreshErr as AxiosError);
         setAccessToken(null);
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-          window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          const isPublicAuthPage = ['/login', '/forgot-password', '/reset-password'].some(
+            (route) => window.location.pathname.startsWith(route)
+          );
+          if (!isPublicAuthPage) {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(refreshErr);
       } finally {

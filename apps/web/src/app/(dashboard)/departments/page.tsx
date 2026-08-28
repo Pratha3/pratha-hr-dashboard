@@ -32,14 +32,8 @@ import { Building2, Plus, Users, Search, Sparkles, CheckCircle2 } from 'lucide-r
 import { useAuth } from '@/providers/auth-provider';
 import { apiClient } from '@/lib/api-client';
 import { Permissions, DepartmentDto } from '@ems/shared-types';
+import { createDepartmentSchema, CreateDepartmentInput } from '@ems/validation';
 import { toast } from 'sonner';
-
-const departmentSchema = z.object({
-  name: z.string().min(2, 'Department name must be at least 2 characters'),
-  description: z.string().optional()
-});
-
-type DepartmentInput = z.infer<typeof departmentSchema>;
 
 export default function DepartmentsPage() {
   const queryClient = useQueryClient();
@@ -170,11 +164,11 @@ function AddDepartmentModal({
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm<DepartmentInput>({
-    resolver: zodResolver(departmentSchema)
+  } = useForm<CreateDepartmentInput>({
+    resolver: zodResolver(createDepartmentSchema)
   });
 
-  const onSubmit = async (data: DepartmentInput) => {
+  const onSubmit = async (data: CreateDepartmentInput) => {
     setIsSubmitting(true);
     try {
       await apiClient.post('/departments', data);

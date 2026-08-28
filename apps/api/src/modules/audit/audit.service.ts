@@ -1,11 +1,13 @@
 import { auditRepository, AuditRepository } from './audit.repository';
+import { AuditLogQueryInput } from '@ems/validation';
 
 export class AuditService {
   constructor(private repo: AuditRepository = auditRepository) {}
 
-  async listLogs(page = 1, limit = 15, search?: string) {
-    return this.repo.findAll(page, limit, search);
+  async listLogs(params: AuditLogQueryInput) {
+    return this.repo.findAll(params);
   }
 }
 
 export const auditService = new AuditService();
+

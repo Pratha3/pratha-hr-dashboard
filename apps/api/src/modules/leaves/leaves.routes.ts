@@ -2,6 +2,11 @@ import { Router } from 'express';
 import { leavesController } from './leaves.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
 import { requirePermission } from '../../middleware/authorization.middleware';
+import { validateBody } from '../../middleware/validate.middleware';
+import {
+  createLeaveRequestSchema,
+  updateLeaveStatusSchema
+} from '@ems/validation';
 import { Permissions } from '@ems/shared-types';
 
 export const leavesRouter = Router();
@@ -23,11 +28,14 @@ leavesRouter.get(
 leavesRouter.post(
   '/',
   requirePermission(Permissions.LEAVE_APPLY),
+  validateBody(createLeaveRequestSchema),
   leavesController.apply
 );
 
 leavesRouter.patch(
   '/:id/status',
   requirePermission(Permissions.LEAVE_MANAGE),
+  validateBody(updateLeaveStatusSchema),
   leavesController.action
 );
+

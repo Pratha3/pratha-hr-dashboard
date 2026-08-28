@@ -25,7 +25,7 @@ export class DepartmentsController {
 
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const department = await this.service.createDepartment(req.body);
+      const department = await this.service.createDepartment(req.body, req.user?.id);
       sendSuccess(res, department, 201);
     } catch (err) {
       next(err);
@@ -34,7 +34,7 @@ export class DepartmentsController {
 
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const department = await this.service.updateDepartment(req.params.id, req.body);
+      const department = await this.service.updateDepartment(req.params.id, req.body, req.user?.id);
       sendSuccess(res, department);
     } catch (err) {
       next(err);

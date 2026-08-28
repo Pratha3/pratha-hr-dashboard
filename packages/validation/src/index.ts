@@ -176,8 +176,8 @@ export type UpdateUserStatusInput = z.infer<typeof updateUserStatusSchema>;
 // ==================== DEPARTMENT SCHEMAS ====================
 
 export const createDepartmentSchema = z.object({
-  name: z.string().min(1, 'Department name is required').max(100),
-  description: z.string().max(500).optional().nullable()
+  name: z.string().trim().min(1, 'Department name is required').max(100),
+  description: z.string().trim().max(500).optional().nullable()
 });
 
 export type CreateDepartmentInput = z.infer<typeof createDepartmentSchema>;
@@ -194,18 +194,30 @@ export type UpdateDepartmentStatusInput = z.infer<typeof updateDepartmentStatusS
 
 // ==================== LEAVE SCHEMAS ====================
 
-export const createLeaveRequestSchema = z.object({
-  leaveTypeId: z.string().uuid('Valid leave type ID is required'),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be YYYY-MM-DD'),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be YYYY-MM-DD'),
-  reason: z.string().min(3, 'Reason must be at least 3 characters long').max(500)
-});
+export const createLeaveRequestSchema = z
+  .object({
+    leaveTypeId: z.string().uuid('Valid leave type ID is required'),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be YYYY-MM-DD'),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be YYYY-MM-DD'),
+    reason: z.string().trim().min(3, 'Reason must be at least 3 characters long').max(500)
+  })
+  .refine(
+    (data) => {
+      const start = new Date(data.startDate);
+      const end = new Date(data.endDate);
+      return !isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end;
+    },
+    {
+      message: 'End date cannot be before start date',
+      path: ['endDate']
+    }
+  );
 
 export type CreateLeaveRequestInput = z.infer<typeof createLeaveRequestSchema>;
 
 export const updateLeaveStatusSchema = z.object({
   status: z.enum(['APPROVED', 'REJECTED', 'CANCELLED']),
-  actionNote: z.string().max(500).optional().nullable()
+  actionNote: z.string().trim().max(500).optional().nullable()
 });
 
 export type UpdateLeaveStatusInput = z.infer<typeof updateLeaveStatusSchema>;
@@ -213,8 +225,9 @@ export type UpdateLeaveStatusInput = z.infer<typeof updateLeaveStatusSchema>;
 // ==================== ANNOUNCEMENT SCHEMAS ====================
 
 export const createAnnouncementSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters').max(200),
-  content: z.string().min(10, 'Content must be at least 10 characters')
+  title: z.string().trim().min(3, 'Title must be at least 3 characters').max(200),
+  content: z.string().trim().min(10, 'Content must be at least 10 characters')
 });
 
 export type CreateAnnouncementInput = z.infer<typeof createAnnouncementSchema>;
+

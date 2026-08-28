@@ -47,16 +47,8 @@ import {
 import { useAuth } from '@/providers/auth-provider';
 import { apiClient } from '@/lib/api-client';
 import { Permissions, LeaveRequestDto, LeaveTypeDto, LeaveStatus } from '@ems/shared-types';
+import { createLeaveRequestSchema, CreateLeaveRequestInput } from '@ems/validation';
 import { toast } from 'sonner';
-
-const applyLeaveSchema = z.object({
-  leaveTypeId: z.string().min(1, 'Please select a leave type'),
-  startDate: z.string().min(1, 'Start date is required'),
-  endDate: z.string().min(1, 'End date is required'),
-  reason: z.string().min(5, 'Please provide a reason (minimum 5 characters)')
-});
-
-type ApplyLeaveInput = z.infer<typeof applyLeaveSchema>;
 
 export default function LeavesPage() {
   const queryClient = useQueryClient();
@@ -339,11 +331,11 @@ function ApplyLeaveModal({
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm<ApplyLeaveInput>({
-    resolver: zodResolver(applyLeaveSchema)
+  } = useForm<CreateLeaveRequestInput>({
+    resolver: zodResolver(createLeaveRequestSchema)
   });
 
-  const onSubmit = async (data: ApplyLeaveInput) => {
+  const onSubmit = async (data: CreateLeaveRequestInput) => {
     setIsSubmitting(true);
     try {
       await apiClient.post('/leaves', data);

@@ -66,7 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Route protection
   useEffect(() => {
     if (!isLoading) {
-      const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/forgot-password');
+      const isAuthRoute =
+        pathname.startsWith('/login') ||
+        pathname.startsWith('/forgot-password') ||
+        pathname.startsWith('/reset-password');
       if (!user && !isAuthRoute) {
         router.replace('/login');
       } else if (user && isAuthRoute) {

@@ -114,6 +114,37 @@ describe('⚡ Automated Edge Case & Fuzz Testing Suite (fast-check)', () => {
         { numRuns: 300 }
       );
     });
+
+    it('createLeaveRequestSchema: strictly rejects inverted date ranges (endDate < startDate)', () => {
+      const result = createLeaveRequestSchema.safeParse({
+        leaveTypeId: '550e8400-e29b-41d4-a716-446655440000',
+        startDate: '2026-06-15',
+        endDate: '2026-06-10',
+        reason: 'Medical checkup and recovery'
+      });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.errors[0].message).toBe('End date cannot be before start date');
+      }
+    });
+
+    it('createLeaveRequestSchema: allows valid date ranges and same-day leaves', () => {
+      const sameDayResult = createLeaveRequestSchema.safeParse({
+        leaveTypeId: '550e8400-e29b-41d4-a716-446655440000',
+        startDate: '2026-06-15',
+        endDate: '2026-06-15',
+        reason: 'Single day leave'
+      });
+      expect(sameDayResult.success).toBe(true);
+
+      const multiDayResult = createLeaveRequestSchema.safeParse({
+        leaveTypeId: '550e8400-e29b-41d4-a716-446655440000',
+        startDate: '2026-06-15',
+        endDate: '2026-06-20',
+        reason: 'Annual vacation'
+      });
+      expect(multiDayResult.success).toBe(true);
+    });
   });
 
   describe('2. Security Engine & Token Fuzzing', () => {

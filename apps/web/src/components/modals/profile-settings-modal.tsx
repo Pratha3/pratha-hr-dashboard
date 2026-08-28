@@ -37,7 +37,7 @@ interface ProfileSettingsModalProps {
 }
 
 export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModalProps) {
-  const { user } = useAuth();
+  const { user, refetchUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
 
   // Profile Form State
@@ -75,13 +75,13 @@ export function ProfileSettingsModal({ open, onOpenChange }: ProfileSettingsModa
     setIsUpdatingProfile(true);
     try {
       await apiClient.patch('/auth/profile', {
-        firstName,
-        lastName,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
         phone: phone.trim() || null
       });
       toast.success('Profile updated successfully');
-      // Refresh page data or auth state
-      window.location.reload();
+      await refetchUser();
+      onOpenChange(false);
     } catch (err: any) {
       toast.error(
         err?.response?.data?.error?.message || 'Failed to update profile details'
