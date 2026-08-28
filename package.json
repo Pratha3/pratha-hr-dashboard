@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.9",
+    "argon2": "^0.45.1",
     "prisma": "^5.16.1",
     "tsx": "^4.16.2",
     "typescript": "^5.5.2"

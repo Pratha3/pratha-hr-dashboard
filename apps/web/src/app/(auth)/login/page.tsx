@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginInput } from '@ems/validation';
@@ -12,9 +13,16 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, Lock, Mail, ArrowRight, Sparkles, KeyRound } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, user, isLoading } = useAuth();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, isLoading, router]);
 
   const {
     register,
@@ -54,6 +62,22 @@ export default function LoginPage() {
     }
     setErrorMessage(null);
   };
+
+  // If session is being verified or user is already logged in, show sleek loading indicator
+  if (isLoading || user) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-executive-950">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary via-blue-600 to-brass-500 flex items-center justify-center text-white font-bold font-display text-xl animate-pulse shadow-lg shadow-primary/25">
+            P
+          </div>
+          <p className="text-xs font-mono text-muted-foreground animate-pulse">
+            {user ? 'Redirecting to Dashboard...' : 'Verifying active session...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-executive-950 via-executive-900 to-executive-950 relative overflow-hidden">
