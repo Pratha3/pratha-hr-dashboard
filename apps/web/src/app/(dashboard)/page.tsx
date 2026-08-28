@@ -36,7 +36,6 @@ export default function DashboardOverviewPage() {
 
   const canManageWorkforce = hasPermission(Permissions.USER_CREATE);
   const canApplyLeave = hasPermission(Permissions.LEAVE_APPLY);
-  const canPostAnnouncement = hasPermission(Permissions.ANNOUNCEMENT_CREATE);
 
   // Fetch live system stats from backend
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -64,46 +63,38 @@ export default function DashboardOverviewPage() {
       value: statsLoading ? '...' : `${stats?.totalUsers ?? 3}`,
       description: `${stats?.activeUsers ?? 3} active team members`,
       icon: Users,
-      href: '/employees',
-      color: 'text-blue-500',
-      bgColor: 'bg-blue-500/10'
+      href: '/employees'
     },
     {
       title: 'Active Departments',
       value: statsLoading ? '...' : `${stats?.totalDepartments ?? 3}`,
       description: 'Engineering, HR & Design',
       icon: Building2,
-      href: '/departments',
-      color: 'text-purple-500',
-      bgColor: 'bg-purple-500/10'
+      href: '/departments'
     },
     {
       title: 'Pending Leaves',
       value: statsLoading ? '...' : `${stats?.pendingLeaves ?? 1}`,
       description: 'Awaiting managerial review',
       icon: CalendarCheck,
-      href: '/leaves',
-      color: 'text-amber-500',
-      bgColor: 'bg-amber-500/10'
+      href: '/leaves'
     },
     {
       title: 'Announcements',
       value: statsLoading ? '...' : `${stats?.totalAnnouncements ?? 1}`,
       description: 'Company-wide bulletins',
       icon: Megaphone,
-      href: '/announcements',
-      color: 'text-emerald-500',
-      bgColor: 'bg-emerald-500/10'
+      href: '/announcements'
     }
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         title="Executive Overview"
         description={`Welcome back, ${user?.firstName} ${user?.lastName}. Here is your organizational overview for today.`}
         badge={
-          <Badge variant={user?.role?.name === 'ADMIN' ? 'indigo' : 'secondary'}>
+          <Badge variant="secondary">
             {user?.role?.name} Portal
           </Badge>
         }
@@ -135,28 +126,28 @@ export default function DashboardOverviewPage() {
           return (
             <motion.div
               key={stat.title}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.2 }}
+              transition={{ delay: i * 0.04, duration: 0.2 }}
             >
-              <Card className="hover:border-primary/40 hover:shadow-md transition-all group relative overflow-hidden">
+              <Card className="hover:border-foreground/20 transition-all group relative overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider font-mono">
                     {stat.title}
                   </CardTitle>
-                  <div className={`p-2 rounded-lg ${stat.bgColor} ${stat.color} transition-transform group-hover:scale-110`}>
+                  <div className="p-2 rounded-md bg-secondary text-foreground transition-transform group-hover:scale-105">
                     <Icon className="h-4 w-4" />
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-1">
-                  <div className="text-2xl font-bold font-display text-foreground">
+                  <div className="text-2xl font-bold font-display text-foreground tracking-tight">
                     {stat.value}
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                     <span>{stat.description}</span>
                     <Link
                       href={stat.href}
-                      className="text-primary hover:underline inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-foreground hover:underline inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <span>View</span>
                       <ArrowUpRight className="h-3 w-3" />
@@ -171,18 +162,18 @@ export default function DashboardOverviewPage() {
 
       {/* Hero Welcome Banner */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.2 }}
         className="rounded-xl border bg-card p-6 sm:p-7 shadow-xs relative overflow-hidden"
       >
         <div className="max-w-2xl space-y-2.5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-semibold border border-primary/20">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-secondary text-foreground text-xs font-medium border">
             <Sparkles className="h-3.5 w-3.5" />
             <span>People Operations Platform</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-display">
-            Welcome to your Workforce Command Center
+            Workforce Command Center
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
             Monitor organizational metrics, streamline departmental operations, review employee time off, and communicate key updates across your team.
@@ -196,33 +187,33 @@ export default function DashboardOverviewPage() {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" />
+              <Activity className="h-4 w-4 text-foreground" />
               <span>Quick Actions</span>
             </CardTitle>
             <CardDescription>Rapid organizational shortcuts</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2.5">
-            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2.5 text-xs h-9">
+          <CardContent className="space-y-2">
+            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">
               <Link href="/employees">
-                <Users className="h-4 w-4 text-blue-500" />
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Workforce Directory</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2.5 text-xs h-9">
+            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">
               <Link href="/departments">
-                <Building2 className="h-4 w-4 text-purple-500" />
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Department Teams</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2.5 text-xs h-9">
+            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">
               <Link href="/leaves">
-                <CalendarCheck className="h-4 w-4 text-amber-500" />
+                <CalendarCheck className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Leave Management</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2.5 text-xs h-9">
+            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">
               <Link href="/announcements">
-                <Megaphone className="h-4 w-4 text-emerald-500" />
+                <Megaphone className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Company Bulletins</span>
               </Link>
             </Button>
@@ -234,7 +225,7 @@ export default function DashboardOverviewPage() {
           <CardHeader className="flex flex-row items-center justify-between pb-3">
             <div>
               <CardTitle className="text-sm flex items-center gap-2">
-                <Key className="h-4 w-4 text-primary" />
+                <Key className="h-4 w-4 text-foreground" />
                 <span>Assigned Account Capabilities ({permissions.length})</span>
               </CardTitle>
               <CardDescription>Active operational permissions granted to your role</CardDescription>
@@ -248,7 +239,7 @@ export default function DashboardOverviewPage() {
               {permissions.map((perm) => (
                 <div
                   key={perm}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60 border text-[11px] font-mono text-foreground font-medium"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/80 border text-[11px] font-mono text-foreground font-medium"
                 >
                   <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0" />
                   <span>{perm}</span>

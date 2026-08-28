@@ -116,10 +116,10 @@ export default function DepartmentsPage() {
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
-                    <Building2 className="h-5 w-5" />
+                  <div className="p-2 rounded-md bg-secondary text-foreground border">
+                    <Building2 className="h-4 w-4" />
                   </div>
-                  <Badge variant={dept.isActive ? 'outline' : 'secondary'} className={dept.isActive ? 'border-emerald-500/30 text-emerald-600 bg-emerald-500/10 text-[10px]' : 'text-[10px]'}>
+                  <Badge variant={dept.isActive ? 'outline' : 'secondary'} className={dept.isActive ? 'border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 text-[10px]' : 'text-[10px]'}>
                     {dept.isActive ? 'Active' : 'Inactive'}
                   </Badge>
                 </div>
@@ -131,7 +131,7 @@ export default function DepartmentsPage() {
 
               <CardContent className="pt-0 border-t bg-muted/10 p-4 rounded-b-xl flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5 text-primary" />
+                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="font-semibold text-foreground">
                     {dept._count?.users ?? 0}
                   </span>

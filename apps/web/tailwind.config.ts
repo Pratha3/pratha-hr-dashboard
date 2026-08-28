@@ -50,33 +50,6 @@ const config: Config = {
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
-        },
-        slate: {
-          950: '#0B0E14',
-          900: '#101520',
-          850: '#161D2B',
-          800: '#1C2436',
-          700: '#2A364E',
-          600: '#415273',
-          500: '#62779F',
-          400: '#8E9FB8',
-          300: '#B8C4D6',
-          200: '#DAE1EB',
-          100: '#EEF2F6',
-          50: '#F8FAFC'
-        },
-        indigo: {
-          50: '#EEF2FF',
-          100: '#E0E7FF',
-          200: '#C7D2FE',
-          300: '#A5B4FC',
-          400: '#818CF8',
-          500: '#6366F1',
-          600: '#4F46E5',
-          700: '#4338CA',
-          800: '#3730A3',
-          900: '#312E81',
-          950: '#1E1B4B'
         }
       },
       borderRadius: {

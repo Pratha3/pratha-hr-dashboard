@@ -133,8 +133,8 @@ export default function AnnouncementsPage() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-                      <Pin className="h-4 w-4" />
+                    <div className="p-1.5 rounded-md bg-secondary text-foreground border">
+                      <Pin className="h-3.5 w-3.5" />
                     </div>
                     <div>
                       <CardTitle className="text-base">{item.title}</CardTitle>

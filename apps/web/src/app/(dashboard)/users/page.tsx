@@ -72,11 +72,11 @@ export default function UsersPage() {
       />
 
       {/* Security Governance Notice */}
-      <Card className="border-primary/20 bg-primary/5">
+      <Card className="border bg-card">
         <CardHeader className="py-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
-              <Lock className="h-5 w-5" />
+            <div className="p-2 rounded-md bg-secondary text-foreground border">
+              <Lock className="h-4 w-4" />
             </div>
             <div>
               <CardTitle className="text-sm">Administrative Access Safeguard</CardTitle>

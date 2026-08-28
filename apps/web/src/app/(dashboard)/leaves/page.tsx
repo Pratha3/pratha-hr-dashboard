@@ -206,7 +206,7 @@ export default function LeavesPage() {
                   <tr key={leave.id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 font-medium text-foreground">
                       <div className="flex items-center gap-2.5">
-                        <div className="h-7 w-7 rounded-full bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold text-xs">
+                        <div className="h-7 w-7 rounded-full bg-secondary text-foreground border flex items-center justify-center font-bold text-xs">
                           {leave.user?.firstName?.[0] || 'U'}
                         </div>
                         <div>
