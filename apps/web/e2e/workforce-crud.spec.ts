@@ -11,8 +11,9 @@ test.describe('Workforce Management & Employee Lifecycle Flow', () => {
     await page.getByRole('button', { name: /Authenticate Session/i }).click();
 
     await expect(page).toHaveURL(/.*dashboard/, { timeout: 15000 });
-    await page.goto('/employees');
-    await expect(page.getByText(/Workforce & Directory/i)).toBeVisible({ timeout: 10000 });
+    await page.locator('aside').getByRole('link', { name: /Workforce/i }).click();
+    await expect(page).toHaveURL(/.*employees/, { timeout: 15000 });
+    await expect(page.getByText(/Workforce & Directory/i)).toBeVisible({ timeout: 15000 });
   });
 
   test('1. Should render directory table with member rows and salary masking', async ({

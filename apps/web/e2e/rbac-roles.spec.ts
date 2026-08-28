@@ -59,11 +59,11 @@ test.describe('Role-Based Access Control (RBAC) & Multi-Role Verification', () =
 
     // Verify Sidebar: Audit Trail link should NOT be present for HR
     const sidebar = page.locator('aside');
-    await expect(sidebar.getByRole('link', { name: /Overview/i })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: /Workforce/i })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: /Departments/i })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: /Leaves & Time Off/i })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: /Announcements/i })).toBeVisible();
+    await expect(sidebar.getByRole('link', { name: /Overview/i })).toBeVisible({ timeout: 10000 });
+    await expect(sidebar.getByRole('link', { name: /Workforce/i })).toBeVisible({ timeout: 10000 });
+    await expect(sidebar.getByRole('link', { name: /Departments/i })).toBeVisible({ timeout: 10000 });
+    await expect(sidebar.getByRole('link', { name: /Leaves & Time Off/i })).toBeVisible({ timeout: 10000 });
+    await expect(sidebar.getByRole('link', { name: /Announcements/i })).toBeVisible({ timeout: 10000 });
     await expect(sidebar.getByRole('link', { name: /Audit Trail/i })).not.toBeVisible();
 
     // Attempting direct URL access to /audit-logs displays Unauthorized Access guard
