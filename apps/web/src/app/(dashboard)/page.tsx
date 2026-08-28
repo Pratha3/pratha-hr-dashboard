@@ -101,10 +101,10 @@ export default function DashboardOverviewPage() {
     <div className="space-y-8">
       <PageHeader
         title="Executive Overview"
-        description={`Welcome back, ${user?.firstName} ${user?.lastName}. Live session connected to Neon PostgreSQL.`}
+        description={`Welcome back, ${user?.firstName} ${user?.lastName}. Here is your organizational overview for today.`}
         badge={
           <Badge variant={user?.role?.name === 'ADMIN' ? 'brass' : 'secondary'}>
-            {user?.role?.name} Session
+            {user?.role?.name} Portal
           </Badge>
         }
       >
@@ -141,7 +141,7 @@ export default function DashboardOverviewPage() {
             >
               <Card className="hover:border-primary/40 hover:shadow-md transition-all group relative overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase font-mono tracking-wider">
+                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     {stat.title}
                   </CardTitle>
                   <div className={`p-2 rounded-lg ${stat.bgColor} ${stat.color} transition-transform group-hover:scale-110`}>
@@ -179,13 +179,13 @@ export default function DashboardOverviewPage() {
         <div className="max-w-2xl space-y-3">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-brass-500/10 text-brass-400 text-xs font-semibold border border-brass-500/20">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Unified HRMS Portal Online</span>
+            <span>Unified People Operations Platform</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-display">
-            Enterprise Session & Security Active
+            Welcome to your Workforce Command Center
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Your credentials have been securely verified using <strong>Argon2id</strong>. Role-based access control, departmental units, and leave requests are derived directly from the PostgreSQL engine.
+            Monitor organizational metrics, streamline departmental operations, review employee time off, and communicate key updates across your team.
           </p>
         </div>
       </motion.div>
@@ -235,11 +235,11 @@ export default function DashboardOverviewPage() {
             <div>
               <CardTitle className="text-sm flex items-center gap-2">
                 <Key className="h-4 w-4 text-primary" />
-                <span>Live Database Permissions ({permissions.length})</span>
+                <span>Assigned Account Capabilities ({permissions.length})</span>
               </CardTitle>
-              <CardDescription>Granular authorization tokens attached to current session</CardDescription>
+              <CardDescription>Active operational permissions granted to your role</CardDescription>
             </div>
-            <Badge variant="outline" className="font-mono text-[10px] uppercase">
+            <Badge variant="outline" className="text-[10px] uppercase">
               Role: {user?.role?.name}
             </Badge>
           </CardHeader>

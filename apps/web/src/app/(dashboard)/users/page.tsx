@@ -79,9 +79,9 @@ export default function UsersPage() {
               <Lock className="h-5 w-5" />
             </div>
             <div>
-              <CardTitle className="text-sm">Last-Admin Governance Protection</CardTitle>
+              <CardTitle className="text-sm">Administrative Access Safeguard</CardTitle>
               <CardDescription>
-                System automatically enforces safety bounds to prevent deactivating or deleting the last active Administrator account.
+                Organizational safety policies ensure continuous administrative governance and prevent accidental account lockouts.
               </CardDescription>
             </div>
           </div>

@@ -137,8 +137,8 @@ export default function DepartmentsPage() {
                   </span>
                   <span>{dept._count?.users === 1 ? 'member' : 'members'}</span>
                 </div>
-                <span className="font-mono text-[10px]">
-                  ID: {dept.id.slice(0, 8)}
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  {dept.isActive ? 'Active Team' : 'Inactive'}
                 </span>
               </CardContent>
             </Card>

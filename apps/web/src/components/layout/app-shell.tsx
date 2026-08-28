@@ -336,14 +336,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Top Workspace status bar */}
             <div className="h-10 border-b bg-card/40 backdrop-blur-xs px-4 sm:px-6 flex items-center justify-between text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[11px]">
-                  Workspace / <strong className="text-foreground">{pathname.split('/')[1] || 'dashboard'}</strong>
+                <span className="text-[11px]">
+                  Organization / <strong className="text-foreground capitalize">{pathname.split('/')[1] || 'Dashboard'}</strong>
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="inline-flex items-center gap-1.5 text-[11px] font-mono">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-emerald-500 font-medium">API: Live (port 5001)</span>
+                <div className="inline-flex items-center gap-1.5 text-[11px]">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                  <span className="text-muted-foreground font-medium">All Systems Operational</span>
                 </div>
               </div>
             </div>
