@@ -95,14 +95,14 @@ export default function LoginPage() {
         <div className="rounded-2xl border border-executive-700/80 bg-card/85 backdrop-blur-xl shadow-2xl p-7 sm:p-8 space-y-6">
           {/* Logo & Header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex h-12 w-12 rounded-xl bg-gradient-to-br from-primary via-blue-600 to-brass-500 items-center justify-center text-white font-bold font-display text-xl shadow-lg shadow-primary/25 mb-1">
-              P
+            <div className="inline-flex h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-500 via-primary to-violet-600 items-center justify-center text-white font-bold font-display text-xl shadow-lg shadow-primary/25 mb-1">
+              N
             </div>
             <h1 className="text-2xl font-bold font-display tracking-tight text-foreground">
-              Sign in to Pratha EMS
+              Sign in to Nexus HRMS
             </h1>
             <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-              Enterprise Employee & Human Resource Management Platform
+              Enterprise Workforce & HR Operations Cloud
             </p>
           </div>
 

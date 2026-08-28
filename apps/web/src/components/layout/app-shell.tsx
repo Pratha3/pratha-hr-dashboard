@@ -154,15 +154,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Mobile Header Bar */}
         <header className="lg:hidden flex items-center justify-between px-4 h-16 border-b bg-card/95 backdrop-blur-md sticky top-0 z-40">
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary via-blue-600 to-brass-500 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
-              P
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-500 via-primary to-violet-600 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
+              N
             </div>
             <div className="flex flex-col">
               <span className="font-display font-bold text-base leading-tight tracking-tight">
-                Pratha EMS
+                Nexus HRMS
               </span>
               <span className="text-[9px] font-mono text-muted-foreground uppercase tracking-widest">
-                Enterprise HRMS
+                Enterprise People OS
               </span>
             </div>
           </Link>
@@ -182,11 +182,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <SheetContent side="left" className="w-72 p-0 flex flex-col bg-card">
             <SheetHeader className="p-5 border-b text-left">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary via-blue-600 to-brass-500 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
-                  P
+                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-indigo-500 via-primary to-violet-600 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
+                  N
                 </div>
                 <div>
-                  <SheetTitle className="text-base font-bold">Pratha EMS</SheetTitle>
+                  <SheetTitle className="text-base font-bold">Nexus HRMS</SheetTitle>
                   <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider">
                     Enterprise Portal
                   </p>
@@ -250,16 +250,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {/* Logo & Brand */}
             <div className="h-16 flex items-center justify-between px-5 border-b">
               <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
-                <div className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-primary via-blue-600 to-brass-500 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
-                  P
+                <div className="h-8 w-8 shrink-0 rounded-lg bg-gradient-to-br from-indigo-500 via-primary to-violet-600 flex items-center justify-center text-white font-bold font-display shadow-md shadow-primary/20">
+                  N
                 </div>
                 {!sidebarCollapsed && (
                   <div className="flex flex-col">
                     <span className="font-display font-bold text-base leading-tight tracking-tight">
-                      Pratha EMS
+                      Nexus HRMS
                     </span>
                     <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">
-                      Enterprise
+                      Enterprise OS
                     </span>
                   </div>
                 )}

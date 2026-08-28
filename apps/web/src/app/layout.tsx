@@ -3,8 +3,8 @@ import './globals.css';
 import { AppProviders } from '@/providers/app-providers';
 
 export const metadata: Metadata = {
-  title: 'Pratha EMS — Enterprise HR Management System',
-  description: 'Enterprise Employee & Human Resource Management Platform'
+  title: 'Nexus HRMS — Enterprise Workforce & People OS',
+  description: 'Next-generation Enterprise Employee & Human Resource Management Platform'
 };
 
 export default function RootLayout({
