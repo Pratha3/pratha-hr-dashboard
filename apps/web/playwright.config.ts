@@ -12,6 +12,12 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
+  webServer: {
+    command: 'bun run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: true,
+    timeout: 120000
+  },
   projects: [
     {
       name: 'chromium',
