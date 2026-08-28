@@ -55,7 +55,7 @@ export class UsersService {
     const { users, total, page, limit, totalPages } = await this.repo.findUsers(query);
 
     return {
-      users: users.map((u) => this.formatUser(u, canReadSalary)),
+      users: users.map((u: any) => this.formatUser(u, canReadSalary)),
       meta: {
         page,
         limit,

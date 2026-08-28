@@ -52,7 +52,7 @@ export async function authMiddleware(req: Request, _res: Response, next: NextFun
     }
 
     const permissions: PermissionName[] = user.role.rolePermissions.map(
-      (rp) => rp.permission.name as PermissionName
+      (rp: any) => rp.permission.name as PermissionName
     );
 
     req.user = {
