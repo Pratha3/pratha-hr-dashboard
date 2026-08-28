@@ -18,6 +18,8 @@ export class UsersRepository {
 
     const skip = (page - 1) * limit;
 
+    const cleanSearch = search?.trim();
+
     const where: Prisma.UserWhereInput = {
       ...(isActive !== undefined ? { isActive } : {}),
       ...(departmentId ? { departmentId } : {}),
@@ -32,14 +34,26 @@ export class UsersRepository {
             }
           }
         : {}),
-      ...(search
+      ...(cleanSearch
         ? {
             OR: [
-              { firstName: { contains: search, mode: 'insensitive' } },
-              { lastName: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
-              { employeeCode: { contains: search, mode: 'insensitive' } },
-              { position: { contains: search, mode: 'insensitive' } }
+              { firstName: { contains: cleanSearch, mode: 'insensitive' } },
+              { lastName: { contains: cleanSearch, mode: 'insensitive' } },
+              { email: { contains: cleanSearch, mode: 'insensitive' } },
+              { employeeCode: { contains: cleanSearch, mode: 'insensitive' } },
+              { position: { contains: cleanSearch, mode: 'insensitive' } },
+              ...(cleanSearch.includes(' ')
+                ? [
+                    {
+                      AND: cleanSearch.split(/\s+/).map((term) => ({
+                        OR: [
+                          { firstName: { contains: term, mode: 'insensitive' as const } },
+                          { lastName: { contains: term, mode: 'insensitive' as const } }
+                        ]
+                      }))
+                    }
+                  ]
+                : [])
             ]
           }
         : {})
