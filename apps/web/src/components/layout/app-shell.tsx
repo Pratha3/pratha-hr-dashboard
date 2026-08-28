@@ -33,6 +33,7 @@ import {
   SheetHeader,
   SheetTitle
 } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { cn } from '@/lib/utils';
 import { Permissions, PermissionName } from '@ems/shared-types';
 
@@ -167,14 +168,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(true)}
-            className="h-9 w-9"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileOpen(true)}
+              className="h-8 w-8"
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
+          </div>
         </header>
 
         {/* Mobile Navigation Drawer */}
@@ -345,6 +349,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   <span className="text-muted-foreground font-medium">All Systems Operational</span>
                 </div>
+                <div className="h-4 w-px bg-border" />
+                <ThemeToggle />
               </div>
             </div>
 
