@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// 1. ENUMS
+// ==========================================
+enum EmployeeStatus {
+  ACTIVE
+  PROBATION
+  NOTICE_PERIOD
+  INACTIVE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// ==========================================
+// 2. AUTH & USER / EMPLOYEE (UNIFIED)
+// ==========================================
+model User {
+  id                  String               @id @default(uuid()) @db.Uuid
+  employeeCode        String?              @unique @db.VarChar(50)
+  firstName           String               @db.VarChar(100)
+  lastName            String               @db.VarChar(100)
+  email               String               @unique @db.VarChar(255)
+  passwordHash        String               @db.VarChar(255)
+  phone               String?              @db.VarChar(50)
+  profileImageUrl     String?              @db.Text
+  
+  // Employment Info
+  position            String?              @db.VarChar(100)
+  departmentId        String?              @db.Uuid
+  department          Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  joiningDate         DateTime?            @db.Date
+  salary              Decimal?             @db.Decimal(12, 2)
+  status              EmployeeStatus       @default(ACTIVE)
+
+  // Role & RBAC
+  roleId              String               @db.Uuid
+  role                Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  // Security & Auth metadata
+  isActive            Boolean              @default(true)
+  isEmailVerified     Boolean              @default(false)
+  failedLoginAttempts Int                  @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+
+  // Relations
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  auditLogs           AuditLog[]
+  leaveRequests       LeaveRequest[]       @relation("UserLeaves")
+  actionedLeaves      LeaveRequest[]       @relation("ActionedLeaves")
+  announcements       Announcement[]
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  @@index([email])
+  @@index([employeeCode])
+  @@index([departmentId])
+  @@index([roleId])
+  @@index([status])
+  @@index([isActive])
+  @@map("users")
+}
+
+// ==========================================
+// 3. RBAC (ROLES & PERMISSIONS)
+// ==========================================
+model Role {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @unique @db.VarChar(50)
+  description     String?          @db.Text
+  isSystem        Boolean          @default(false)
+  users           User[]
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @unique @db.VarChar(100)
+  description     String?          @db.Text
+  module          String           @db.VarChar(50)
+  rolePermissions RolePermission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @db.Uuid
+  permissionId String     @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// ==========================================
+// 4. AUTH TOKENS
+// ==========================================
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @db.VarChar(255)
+  family    String    @db.Uuid
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([family])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @db.VarChar(255)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("password_reset_tokens")
+}
+
+// ==========================================
+// 5. DEPARTMENT
+// ==========================================
+model Department {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  users       User[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+  @@map("departments")
+}
+
+// ==========================================
+// 6. LEAVE MANAGEMENT
+// ==========================================
+model LeaveType {
+  id          String         @id @default(uuid()) @db.Uuid
+  name        String         @unique @db.VarChar(50)
+  daysAllowed Int            @default(12)
+  requests    LeaveRequest[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("leave_types")
+}
+
+model LeaveRequest {
+  id          String      @id @default(uuid()) @db.Uuid
+  userId      String      @db.Uuid
+  user        User        @relation("UserLeaves", fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId String      @db.Uuid
+  leaveType   LeaveType   @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  startDate   DateTime    @db.Date
+  endDate     DateTime    @db.Date
+  reason      String      @db.Text
+  status      LeaveStatus @default(PENDING)
+  
+  actionById  String?     @db.Uuid
+  actionBy    User?       @relation("ActionedLeaves", fields: [actionById], references: [id], onDelete: SetNull)
+  actionNote  String?     @db.Text
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([leaveTypeId])
+  @@index([status])
+  @@map("leave_requests")
+}
+
+// ==========================================
+// 7. ANNOUNCEMENTS
+// ==========================================
+model Announcement {
+  id        String   @id @default(uuid()) @db.Uuid
+  title     String   @db.VarChar(200)
+  content   String   @db.Text
+  authorId  String   @db.Uuid
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([authorId])
+  @@map("announcements")
+}
+
+// ==========================================
+// 8. AUDIT LOG
+// ==========================================
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @db.Uuid
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   @db.VarChar(100)
+  entity    String   @db.VarChar(100)
+  entityId  String?  @db.VarChar(100)
+  metadata  Json?
+  ipAddress String?  @db.VarChar(50)
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

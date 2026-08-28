@@ -1,0 +1,20 @@
+{
+  "name": "@ems/validation",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@ems/shared-types": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@ems/tsconfig": "workspace:*",
+    "typescript": "^5.5.2"
+  }
+}

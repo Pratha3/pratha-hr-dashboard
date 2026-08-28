@@ -1,0 +1,35 @@
+{
+  "name": "pratha-hr-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise HR Management System Backend & Dashboard",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter @ems/api dev",
+    "dev:api": "pnpm --filter @ems/api dev",
+    "dev:web": "pnpm --filter @ems/web dev",
+    "build": "pnpm --filter @ems/shared-types build && pnpm --filter @ems/validation build && pnpm --filter @ems/api build && pnpm --filter @ems/web build",
+    "build:web": "pnpm --filter @ems/web build",
+    "test": "pnpm --filter @ems/api test",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:generate": "prisma generate"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.16.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.9",
+    "prisma": "^5.16.1",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.2"
+  }
+}

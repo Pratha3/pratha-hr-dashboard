@@ -1,0 +1,22 @@
+import type { Metadata } from 'next';
+import './globals.css';
+import { AppProviders } from '@/providers/app-providers';
+
+export const metadata: Metadata = {
+  title: 'Pratha EMS — Enterprise HR Management System',
+  description: 'Enterprise Employee & Human Resource Management Platform'
+};
+
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en" className="dark">
+      <body className="min-h-screen bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
+        <AppProviders>{children}</AppProviders>
+      </body>
+    </html>
+  );
+}
