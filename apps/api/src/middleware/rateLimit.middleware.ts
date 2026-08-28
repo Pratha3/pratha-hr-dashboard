@@ -4,7 +4,7 @@ import { RateLimitError } from '../common/errors/app-error';
 
 export const generalRateLimiter = rateLimit({
   windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_MAX,
+  max: process.env.NODE_ENV === 'production' ? env.RATE_LIMIT_MAX : 1000,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, _res, next) => {
@@ -14,8 +14,8 @@ export const generalRateLimiter = rateLimit({
 });
 
 export const authRateLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute window
-  max: env.AUTH_RATE_LIMIT_MAX, // 10 attempts per minute
+  windowMs: 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? env.AUTH_RATE_LIMIT_MAX : 200,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, _res, next) => {

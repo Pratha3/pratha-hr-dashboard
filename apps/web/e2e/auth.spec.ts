@@ -19,7 +19,7 @@ test.describe('HRMS Dashboard End-to-End Tests', () => {
     await page.locator('input[type="password"]').fill('WrongPassword123!');
     await page.getByRole('button', { name: /Authenticate Session/i }).click();
 
-    await expect(page.getByText(/Invalid email or password/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Invalid email or password/i).first()).toBeVisible({ timeout: 10000 });
   });
 
   test('3. Full Admin login flow & dashboard access verification', async ({ page }) => {
