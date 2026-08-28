@@ -29,9 +29,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchCurrentUser = useCallback(async () => {
     try {
       // 1. Attempt silent token refresh first to establish session if HttpOnly cookie exists
+      let token: string | null = null;
       try {
         const refreshRes = await apiClient.post('/auth/refresh');
-        const token = refreshRes.data?.data?.accessToken;
+        token = refreshRes.data?.data?.accessToken;
         if (token) {
           setAccessToken(token);
         }
@@ -39,10 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // No active refresh session or invalid
       }
 
-      // 2. Fetch live user profile and permissions from DB
-      const res = await apiClient.get('/auth/me');
-      if (res.data?.success && res.data?.data?.user) {
-        setUser(res.data.data.user);
+      // 2. Fetch live user profile and permissions from DB only if token exists
+      if (token) {
+        const res = await apiClient.get('/auth/me');
+        if (res.data?.success && res.data?.data?.user) {
+          setUser(res.data.data.user);
+        } else {
+          setUser(null);
+        }
       } else {
         setUser(null);
       }
