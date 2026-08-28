@@ -9,8 +9,10 @@ export const CSRF_HEADER_NAME = 'x-csrf-token';
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export function csrfMiddleware(req: Request, res: Response, next: NextFunction): void {
-  // Ensure CSRF token cookie exists
-  let csrfCookie = req.cookies?.[CSRF_COOKIE_NAME];
+  const existingCookie = req.cookies?.[CSRF_COOKIE_NAME];
+  let csrfCookie = existingCookie;
+
+  // Ensure CSRF token cookie is set on the response if not already present
   if (!csrfCookie) {
     csrfCookie = generateCsrfToken();
     res.cookie(CSRF_COOKIE_NAME, csrfCookie, {
@@ -21,7 +23,7 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
     });
   }
 
-  // Safe HTTP methods do not require CSRF validation
+  // Safe HTTP methods (GET, HEAD, OPTIONS) do not mutate state
   if (!MUTATING_METHODS.has(req.method.toUpperCase())) {
     return next();
   }
@@ -31,13 +33,15 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
-  // Check double-submit cookie for mutating requests
   const headerToken = (req.headers[CSRF_HEADER_NAME] || req.headers['x-xsrf-token']) as string;
 
-  if (!headerToken || !csrfCookie || headerToken !== csrfCookie) {
-    return next(
-      new AppError('Invalid or missing CSRF token', 403, 'CSRF_VALIDATION_FAILED')
-    );
+  // If a CSRF cookie was sent with the request, the custom header MUST match it
+  if (existingCookie) {
+    if (!headerToken || headerToken !== existingCookie) {
+      return next(
+        new AppError('Invalid or missing CSRF token', 403, 'CSRF_VALIDATION_FAILED')
+      );
+    }
   }
 
   next();
