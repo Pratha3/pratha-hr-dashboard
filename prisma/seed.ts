@@ -31,6 +31,19 @@ const PERMISSIONS = [
   { name: 'ANNOUNCEMENT_CREATE', description: 'Create company announcements', module: 'ANNOUNCEMENT' },
   { name: 'ANNOUNCEMENT_DELETE', description: 'Delete company announcements', module: 'ANNOUNCEMENT' },
 
+  // Projects & Staffing
+  { name: 'PROJECT_READ', description: 'View company projects and staffing', module: 'PROJECT' },
+  { name: 'PROJECT_CREATE', description: 'Create new projects', module: 'PROJECT' },
+  { name: 'PROJECT_UPDATE', description: 'Update projects and staff members', module: 'PROJECT' },
+  { name: 'PROJECT_DELETE', description: 'Delete projects', module: 'PROJECT' },
+
+  // Hardware & IT Assets
+  { name: 'ASSET_READ', description: 'View IT hardware inventory and assigned devices', module: 'ASSET' },
+  { name: 'ASSET_CREATE', description: 'Register new hardware assets', module: 'ASSET' },
+  { name: 'ASSET_UPDATE', description: 'Update hardware specs and status', module: 'ASSET' },
+  { name: 'ASSET_DELETE', description: 'Delete hardware records', module: 'ASSET' },
+  { name: 'ASSET_ASSIGN', description: 'Assign or reclaim hardware for employees', module: 'ASSET' },
+
   // Dashboard & Audit
   { name: 'DASHBOARD_READ', description: 'View dashboard analytics and statistics', module: 'DASHBOARD' },
   { name: 'AUDIT_READ', description: 'View audit logs', module: 'AUDIT' }
@@ -48,6 +61,13 @@ const HR_PERMISSIONS = [
   'LEAVE_MANAGE',
   'ANNOUNCEMENT_READ',
   'ANNOUNCEMENT_CREATE',
+  'PROJECT_READ',
+  'PROJECT_CREATE',
+  'PROJECT_UPDATE',
+  'ASSET_READ',
+  'ASSET_CREATE',
+  'ASSET_UPDATE',
+  'ASSET_ASSIGN',
   'DASHBOARD_READ'
 ];
 
@@ -58,6 +78,8 @@ const EMPLOYEE_PERMISSIONS = [
   'LEAVE_READ',
   'LEAVE_APPLY',
   'ANNOUNCEMENT_READ',
+  'PROJECT_READ',
+  'ASSET_READ',
   'DASHBOARD_READ'
 ];
 
@@ -296,6 +318,142 @@ async function main() {
       endDate: new Date('2026-09-03'),
       reason: 'Personal family trip',
       status: 'PENDING'
+    }
+  });
+
+  // 9. Seed Projects & Resource Allocation
+  console.log('🚀 Seeding sample projects & staffing...');
+  await prisma.projectMember.deleteMany();
+  await prisma.project.deleteMany();
+
+  const project1 = await prisma.project.create({
+    data: {
+      name: 'FinTech NextGen Mobile Banking',
+      clientName: 'Apex Financial Corp',
+      description: 'Zero-latency mobile banking application with biometric authorization and real-time fraud alerts.',
+      status: 'ACTIVE',
+      startDate: new Date('2026-01-10'),
+      endDate: new Date('2026-11-30')
+    }
+  });
+
+  const project2 = await prisma.project.create({
+    data: {
+      name: 'Enterprise AI Workforce Analytics',
+      clientName: 'Global Logistics Ltd',
+      description: 'Predictive attrition modeling and real-time productivity intelligence engine for logistics teams.',
+      status: 'ACTIVE',
+      startDate: new Date('2026-03-01'),
+      endDate: new Date('2026-12-15')
+    }
+  });
+
+  await prisma.project.create({
+    data: {
+      name: 'Internal Identity & SSO Migration',
+      clientName: 'Internal Ops',
+      description: 'Upgrading enterprise authentication with WebAuthn, FIDO2 keys, and OAuth2 federation.',
+      status: 'PLANNING',
+      startDate: new Date('2026-10-01'),
+      endDate: new Date('2027-02-28')
+    }
+  });
+
+  // Assign Project Members
+  await prisma.projectMember.create({
+    data: {
+      projectId: project1.id,
+      userId: empUser.id,
+      role: 'Lead Frontend Engineer',
+      allocation: 80
+    }
+  });
+
+  await prisma.projectMember.create({
+    data: {
+      projectId: project2.id,
+      userId: empUser.id,
+      role: 'Consulting Architect',
+      allocation: 20
+    }
+  });
+
+  await prisma.projectMember.create({
+    data: {
+      projectId: project1.id,
+      userId: adminUser.id,
+      role: 'Technical Director',
+      allocation: 50
+    }
+  });
+
+  // 10. Seed IT Hardware & Assets
+  console.log('💻 Seeding hardware & IT assets...');
+  await prisma.asset.deleteMany();
+
+  await prisma.asset.create({
+    data: {
+      name: 'Apple MacBook Pro 16" (M3 Max, 36GB, 1TB)',
+      serialNumber: 'MBP-M3-90214',
+      type: 'LAPTOP',
+      status: 'ASSIGNED',
+      assignedToId: empUser.id,
+      assignedDate: new Date('2026-01-15'),
+      notes: 'Primary engineering development machine with company MDM installed.'
+    }
+  });
+
+  await prisma.asset.create({
+    data: {
+      name: 'Dell UltraSharp 32" 4K USB-C Hub Monitor (U3223QE)',
+      serialNumber: 'DEL-MON-78102',
+      type: 'MONITOR',
+      status: 'ASSIGNED',
+      assignedToId: empUser.id,
+      assignedDate: new Date('2026-01-20'),
+      notes: 'Desk display setup at Head Office Desk 4B.'
+    }
+  });
+
+  await prisma.asset.create({
+    data: {
+      name: 'Apple MacBook Pro 14" (M3 Pro, 18GB, 512GB)',
+      serialNumber: 'MBP-M3-44190',
+      type: 'LAPTOP',
+      status: 'ASSIGNED',
+      assignedToId: hrUser.id,
+      assignedDate: new Date('2026-02-01'),
+      notes: 'HR Operations machine.'
+    }
+  });
+
+  await prisma.asset.create({
+    data: {
+      name: 'YubiKey 5C NFC Security Key',
+      serialNumber: 'YUBI-5C-88231',
+      type: 'SECURITY_KEY',
+      status: 'AVAILABLE',
+      notes: 'In stock in IT Hardware Cabinet A.'
+    }
+  });
+
+  await prisma.asset.create({
+    data: {
+      name: 'Dell Precision 5570 Mobile Workstation',
+      serialNumber: 'DEL-WRK-55209',
+      type: 'LAPTOP',
+      status: 'AVAILABLE',
+      notes: 'Reclaimed from departing contractor; re-imaged and ready for deployment.'
+    }
+  });
+
+  await prisma.asset.create({
+    data: {
+      name: 'Apple iPad Pro 12.9" (M2, Cellular 256GB)',
+      serialNumber: 'IPD-M2-31092',
+      type: 'MOBILE_DEVICE',
+      status: 'IN_REPAIR',
+      notes: 'Sent to Apple authorized service for screen replacement.'
     }
   });
 

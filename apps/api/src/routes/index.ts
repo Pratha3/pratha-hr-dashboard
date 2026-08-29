@@ -6,6 +6,8 @@ import { leavesRouter } from '../modules/leaves/leaves.routes';
 import { announcementsRouter } from '../modules/announcements/announcements.routes';
 import { auditRouter } from '../modules/audit/audit.routes';
 import { dashboardRouter } from '../modules/dashboard/dashboard.routes';
+import { projectsRouter } from '../modules/projects/projects.routes';
+import { assetsRouter } from '../modules/assets/assets.routes';
 
 export const apiRouter = Router();
 
@@ -17,4 +19,7 @@ apiRouter.use('/leaves', leavesRouter);
 apiRouter.use('/announcements', announcementsRouter);
 apiRouter.use('/audit-logs', auditRouter);
 apiRouter.use('/dashboard', dashboardRouter);
+apiRouter.use('/projects', projectsRouter);
+apiRouter.use('/assets', assetsRouter);
+
 

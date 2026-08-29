@@ -231,3 +231,61 @@ export const createAnnouncementSchema = z.object({
 
 export type CreateAnnouncementInput = z.infer<typeof createAnnouncementSchema>;
 
+// ==================== PROJECT & STAFFING SCHEMAS ====================
+
+export const createProjectSchema = z.object({
+  name: z.string().trim().min(2, 'Project name must be at least 2 characters').max(150),
+  clientName: z.string().trim().max(150).optional().nullable(),
+  description: z.string().trim().max(1000).optional().nullable(),
+  status: z.enum(['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED']).optional().default('ACTIVE'),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be YYYY-MM-DD').optional().nullable(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be YYYY-MM-DD').optional().nullable()
+});
+
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+export const updateProjectSchema = createProjectSchema.partial();
+
+export type UpdateProjectInput = z.infer<typeof updateProjectSchema>;
+
+export const assignProjectMemberSchema = z.object({
+  userId: z.string().uuid('Valid user ID is required'),
+  role: z.string().trim().min(2, 'Role must be at least 2 characters').max(50).default('Contributor'),
+  allocation: z.number().int().min(1, 'Allocation must be at least 1%').max(100, 'Allocation cannot exceed 100%').default(100)
+});
+
+export type AssignProjectMemberInput = z.infer<typeof assignProjectMemberSchema>;
+
+// ==================== HARDWARE & IT ASSET SCHEMAS ====================
+
+export const createAssetSchema = z.object({
+  name: z.string().trim().min(2, 'Asset name is required').max(100),
+  serialNumber: z.string().trim().min(2, 'Serial number is required').max(100),
+  type: z.enum(['LAPTOP', 'MONITOR', 'MOBILE_DEVICE', 'SECURITY_KEY', 'PERIPHERAL', 'OTHER']).default('LAPTOP'),
+  status: z.enum(['ASSIGNED', 'AVAILABLE', 'IN_REPAIR', 'RETIRED']).optional().default('AVAILABLE'),
+  assignedToId: z.string().uuid('Valid user ID is required').optional().nullable(),
+  notes: z.string().trim().max(500).optional().nullable()
+});
+
+export type CreateAssetInput = z.infer<typeof createAssetSchema>;
+
+export const updateAssetSchema = createAssetSchema.partial();
+
+export type UpdateAssetInput = z.infer<typeof updateAssetSchema>;
+
+export const assignAssetSchema = z.object({
+  assignedToId: z.string().uuid('Valid user ID is required').nullable(),
+  notes: z.string().trim().max(500).optional().nullable()
+});
+
+export type AssignAssetInput = z.infer<typeof assignAssetSchema>;
+
+export const assetQuerySchema = paginationQuerySchema.extend({
+  type: z.enum(['LAPTOP', 'MONITOR', 'MOBILE_DEVICE', 'SECURITY_KEY', 'PERIPHERAL', 'OTHER']).optional(),
+  status: z.enum(['ASSIGNED', 'AVAILABLE', 'IN_REPAIR', 'RETIRED']).optional(),
+  assignedToId: z.string().uuid().optional()
+});
+
+export type AssetQueryInput = z.infer<typeof assetQuerySchema>;
+
+

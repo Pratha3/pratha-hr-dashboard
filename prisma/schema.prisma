@@ -24,6 +24,29 @@ enum LeaveStatus {
   CANCELLED
 }
 
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+}
+
+enum AssetType {
+  LAPTOP
+  MONITOR
+  MOBILE_DEVICE
+  SECURITY_KEY
+  PERIPHERAL
+  OTHER
+}
+
+enum AssetStatus {
+  ASSIGNED
+  AVAILABLE
+  IN_REPAIR
+  RETIRED
+}
+
 // ==========================================
 // 2. AUTH & USER / EMPLOYEE (UNIFIED)
 // ==========================================
@@ -63,6 +86,8 @@ model User {
   leaveRequests       LeaveRequest[]       @relation("UserLeaves")
   actionedLeaves      LeaveRequest[]       @relation("ActionedLeaves")
   announcements       Announcement[]
+  projectMembers      ProjectMember[]
+  assignedAssets      Asset[]
 
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -242,3 +267,62 @@ model AuditLog {
   @@index([createdAt])
   @@map("audit_logs")
 }
+
+// ==========================================
+// 9. PROJECTS & RESOURCE ALLOCATION
+// ==========================================
+model Project {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String          @db.VarChar(150)
+  clientName  String?         @db.VarChar(150)
+  description String?         @db.Text
+  status      ProjectStatus   @default(ACTIVE)
+  startDate   DateTime?       @db.Date
+  endDate     DateTime?       @db.Date
+  members     ProjectMember[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([status])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id         String   @id @default(uuid()) @db.Uuid
+  projectId  String   @db.Uuid
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId     String   @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       String   @default("Contributor") @db.VarChar(50)
+  allocation Int      @default(100)
+  assignedAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+// ==========================================
+// 10. HARDWARE & IT ASSETS
+// ==========================================
+model Asset {
+  id           String      @id @default(uuid()) @db.Uuid
+  name         String      @db.VarChar(100)
+  serialNumber String      @unique @db.VarChar(100)
+  type         AssetType   @default(LAPTOP)
+  status       AssetStatus @default(AVAILABLE)
+  assignedToId String?     @db.Uuid
+  assignedTo   User?       @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedDate DateTime?
+  notes        String?     @db.Text
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([assignedToId])
+  @@index([status])
+  @@index([type])
+  @@index([serialNumber])
+  @@map("assets")
+}
+

@@ -25,7 +25,9 @@ import {
   Key,
   Shield,
   Activity,
-  Plus
+  Plus,
+  FolderKanban,
+  Laptop
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api-client';
@@ -51,7 +53,10 @@ export default function DashboardOverviewPage() {
           totalDepartments: 3,
           activeDepartments: 3,
           pendingLeaves: 1,
-          totalAnnouncements: 1
+          totalAnnouncements: 1,
+          activeProjects: 2,
+          totalAssets: 6,
+          assignedAssets: 3
         };
       }
     }
@@ -61,14 +66,28 @@ export default function DashboardOverviewPage() {
     {
       title: 'Total Workforce',
       value: statsLoading ? '...' : `${stats?.totalUsers ?? 3}`,
-      description: `${stats?.activeUsers ?? 3} active team members`,
+      description: `${stats?.activeUsers ?? 3} active employees`,
       icon: Users,
       href: '/employees'
     },
     {
-      title: 'Active Departments',
+      title: 'Active Projects',
+      value: statsLoading ? '...' : `${stats?.activeProjects ?? 2}`,
+      description: 'Client & internal sprints',
+      icon: FolderKanban,
+      href: '/projects'
+    },
+    {
+      title: 'IT Hardware',
+      value: statsLoading ? '...' : `${stats?.totalAssets ?? 6}`,
+      description: `${stats?.assignedAssets ?? 3} deployed devices`,
+      icon: Laptop,
+      href: '/assets'
+    },
+    {
+      title: 'Departments',
       value: statsLoading ? '...' : `${stats?.totalDepartments ?? 3}`,
-      description: 'Engineering, HR & Design',
+      description: `${stats?.activeDepartments ?? 3} active divisions`,
       icon: Building2,
       href: '/departments'
     },
@@ -82,7 +101,7 @@ export default function DashboardOverviewPage() {
     {
       title: 'Announcements',
       value: statsLoading ? '...' : `${stats?.totalAnnouncements ?? 1}`,
-      description: 'Company-wide bulletins',
+      description: 'Company-wide broadcasts',
       icon: Megaphone,
       href: '/announcements'
     }
@@ -120,7 +139,7 @@ export default function DashboardOverviewPage() {
       </PageHeader>
 
       {/* KPI Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
         {statCards.map((stat, i) => {
           const Icon = stat.icon;
           return (
@@ -128,28 +147,27 @@ export default function DashboardOverviewPage() {
               key={stat.title}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04, duration: 0.2 }}
+              transition={{ delay: i * 0.03, duration: 0.2 }}
             >
-              <Card className="hover:border-foreground/20 transition-all group relative overflow-hidden">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider font-mono">
+              <Card className="hover:border-foreground/20 transition-all group relative overflow-hidden h-full flex flex-col justify-between">
+                <CardHeader className="flex flex-row items-center justify-between pb-1 p-3.5">
+                  <CardTitle className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider font-mono truncate">
                     {stat.title}
                   </CardTitle>
-                  <div className="p-2 rounded-md bg-secondary text-foreground transition-transform group-hover:scale-105">
-                    <Icon className="h-4 w-4" />
+                  <div className="p-1.5 rounded-md bg-secondary text-foreground transition-transform group-hover:scale-105 shrink-0">
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-1">
-                  <div className="text-2xl font-bold font-display text-foreground tracking-tight">
+                <CardContent className="space-y-0.5 p-3.5 pt-0">
+                  <div className="text-xl font-bold font-display text-foreground tracking-tight">
                     {stat.value}
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>{stat.description}</span>
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span className="truncate">{stat.description}</span>
                     <Link
                       href={stat.href}
-                      className="text-foreground hover:underline inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-foreground hover:underline inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
                     >
-                      <span>View</span>
                       <ArrowUpRight className="h-3 w-3" />
                     </Link>
                   </div>
@@ -170,13 +188,13 @@ export default function DashboardOverviewPage() {
         <div className="max-w-2xl space-y-2.5">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-secondary text-foreground text-xs font-medium border">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>People Operations Platform</span>
+            <span>People & Operations Platform</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground font-display">
-            Workforce Command Center
+            Workforce & Operations Command Center
           </h2>
           <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Monitor organizational metrics, streamline departmental operations, review employee time off, and communicate key updates across your team.
+            Monitor organizational metrics, manage active project allocations, track IT hardware assets, review time off, and communicate key bulletins across teams.
           </p>
         </div>
       </motion.div>
@@ -197,6 +215,18 @@ export default function DashboardOverviewPage() {
               <Link href="/employees">
                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>Workforce Directory</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">
+              <Link href="/projects">
+                <FolderKanban className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Projects & Staffing</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">
+              <Link href="/assets">
+                <Laptop className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Hardware Inventory</span>
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">

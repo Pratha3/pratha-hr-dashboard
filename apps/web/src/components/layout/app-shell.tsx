@@ -9,6 +9,8 @@ import {
   Building2,
   CalendarCheck,
   Megaphone,
+  FolderKanban,
+  Laptop,
   ShieldCheck,
   History,
   LogOut,
@@ -63,6 +65,18 @@ const NAV_ITEMS: NavItem[] = [
     href: '/departments',
     icon: Building2,
     permission: Permissions.DEPARTMENT_READ
+  },
+  {
+    label: 'Projects',
+    href: '/projects',
+    icon: FolderKanban,
+    permission: Permissions.PROJECT_READ
+  },
+  {
+    label: 'Hardware Assets',
+    href: '/assets',
+    icon: Laptop,
+    permission: Permissions.ASSET_READ
   },
   {
     label: 'Leaves & Time Off',

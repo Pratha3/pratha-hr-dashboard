@@ -27,11 +27,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   const fetchCurrentUser = useCallback(async () => {
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
     try {
       // 1. Attempt silent token refresh first to establish session if HttpOnly cookie exists
       let token: string | null = null;
       try {
-        const refreshRes = await apiClient.post('/auth/refresh');
+        const refreshRes = await apiClient.post('/auth/refresh', {}, { timeout: 2500 });
         token = refreshRes.data?.data?.accessToken;
         if (token) {
           setAccessToken(token);
@@ -42,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // 2. Fetch live user profile and permissions from DB only if token exists
       if (token) {
-        const res = await apiClient.get('/auth/me');
+        const res = await apiClient.get('/auth/me', { timeout: 2500 });
         if (res.data?.success && res.data?.data?.user) {
           setUser(res.data.data.user);
         } else {
@@ -55,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setAccessToken(null);
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   }, []);

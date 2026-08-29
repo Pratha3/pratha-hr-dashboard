@@ -9,14 +9,20 @@ export class DashboardService {
       totalDepartments,
       activeDepartments,
       pendingLeaves,
-      totalAnnouncements
+      totalAnnouncements,
+      activeProjects,
+      totalAssets,
+      assignedAssets
     ] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { isActive: true } }),
       prisma.department.count(),
       prisma.department.count({ where: { isActive: true } }),
       prisma.leaveRequest.count({ where: { status: LeaveStatus.PENDING } }),
-      prisma.announcement.count()
+      prisma.announcement.count(),
+      prisma.project.count({ where: { status: 'ACTIVE' } }),
+      prisma.asset.count(),
+      prisma.asset.count({ where: { status: 'ASSIGNED' } })
     ]);
 
     return {
@@ -25,7 +31,10 @@ export class DashboardService {
       totalDepartments,
       activeDepartments,
       pendingLeaves,
-      totalAnnouncements
+      totalAnnouncements,
+      activeProjects,
+      totalAssets,
+      assignedAssets
     };
   }
 }

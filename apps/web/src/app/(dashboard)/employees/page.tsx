@@ -19,7 +19,9 @@ import {
   EyeOff,
   ChevronLeft,
   ChevronRight,
-  Filter
+  Filter,
+  FolderKanban,
+  Laptop
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { EmptyState } from '@/components/states/empty-state';
@@ -78,6 +80,29 @@ export default function EmployeesPage() {
   // Dialog States
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserSummary | null>(null);
+  const [viewingUser, setViewingUser] = useState<UserSummary | null>(null);
+
+  // Fetch Projects for viewed user
+  const { data: userProjects = [], isLoading: loadingProjects } = useQuery({
+    queryKey: ['user-projects', viewingUser?.id],
+    queryFn: async () => {
+      if (!viewingUser) return [];
+      const res = await apiClient.get(`/projects/user/${viewingUser.id}`);
+      return res.data?.data || [];
+    },
+    enabled: Boolean(viewingUser)
+  });
+
+  // Fetch Assets for viewed user
+  const { data: userAssets = [], isLoading: loadingAssets } = useQuery({
+    queryKey: ['user-assets', viewingUser?.id],
+    queryFn: async () => {
+      if (!viewingUser) return [];
+      const res = await apiClient.get(`/assets/user/${viewingUser.id}`);
+      return res.data?.data || [];
+    },
+    enabled: Boolean(viewingUser)
+  });
 
   // 1. Fetch Metadata (Departments & Roles)
   const { data: metadata } = useQuery({
@@ -323,8 +348,12 @@ export default function EmployeesPage() {
                             <MoreVertical className="h-3.5 w-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuContent align="end" className="w-52">
                           <DropdownMenuLabel>Member Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => setViewingUser(user)}>
+                            <FolderKanban className="h-3.5 w-3.5 text-primary" />
+                            <span>Staffing & Hardware</span>
+                          </DropdownMenuItem>
                           {canUpdate && (
                             <DropdownMenuItem onClick={() => setEditingUser(user)}>
                               <Edit2 className="h-3.5 w-3.5" />
@@ -426,6 +455,160 @@ export default function EmployeesPage() {
           departments={metadata?.departments || []}
           roles={metadata?.roles || []}
         />
+      )}
+
+      {/* Staffing & Equipment Details Modal */}
+      {viewingUser && (
+        <Dialog open={Boolean(viewingUser)} onOpenChange={(open) => !open && setViewingUser(null)}>
+          <DialogContent className="sm:max-w-[620px] max-h-[85vh] overflow-y-auto">
+            <DialogHeader className="pb-3 border-b">
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg border border-primary/20">
+                  {viewingUser.firstName[0]}
+                  {viewingUser.lastName[0]}
+                </div>
+                <div>
+                  <DialogTitle className="text-base font-bold">
+                    {viewingUser.firstName} {viewingUser.lastName}
+                  </DialogTitle>
+                  <DialogDescription className="text-xs flex items-center gap-2 mt-0.5">
+                    <span>{viewingUser.email}</span>
+                    {viewingUser.employeeCode && (
+                      <>
+                        <span>•</span>
+                        <span className="font-mono">{viewingUser.employeeCode}</span>
+                      </>
+                    )}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-5 py-2">
+              {/* Profile Meta Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                <div className="p-2.5 rounded-lg bg-muted/40 border border-border/70">
+                  <p className="text-[10px] text-muted-foreground uppercase font-mono">Department</p>
+                  <p className="font-medium text-foreground mt-0.5">{viewingUser.department?.name || 'Unassigned'}</p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border border-border/70">
+                  <p className="text-[10px] text-muted-foreground uppercase font-mono">Designation</p>
+                  <p className="font-medium text-foreground mt-0.5">{viewingUser.position || 'Staff'}</p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-muted/40 border border-border/70">
+                  <p className="text-[10px] text-muted-foreground uppercase font-mono">System Role</p>
+                  <p className="font-medium text-foreground mt-0.5">{viewingUser.role?.name}</p>
+                </div>
+              </div>
+
+              {/* 1. Active Projects Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <FolderKanban className="h-4 w-4 text-primary" />
+                    <span>Active Projects Staffed On ({userProjects.length})</span>
+                  </h4>
+                </div>
+
+                {loadingProjects ? (
+                  <p className="text-xs text-muted-foreground">Loading projects...</p>
+                ) : userProjects.length === 0 ? (
+                  <div className="p-4 text-center rounded-lg border border-dashed text-xs text-muted-foreground bg-muted/20">
+                    No active project allocations assigned to this employee.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {userProjects.map((member: any) => (
+                      <div
+                        key={member.id}
+                        className="p-3 rounded-lg border bg-card flex items-center justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs text-foreground truncate">
+                            {member.project?.name}
+                          </p>
+                          {member.project?.clientName && (
+                            <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                              <Briefcase className="h-3 w-3 text-muted-foreground/80" />
+                              <span>{member.project.clientName}</span>
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge variant="outline" className="text-xs font-normal">
+                            {member.role}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs font-semibold text-primary">
+                            {member.allocation}% Time
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 2. IT Hardware & Equipment Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Laptop className="h-4 w-4 text-primary" />
+                    <span>Assigned Hardware & IT Equipment ({userAssets.length})</span>
+                  </h4>
+                </div>
+
+                {loadingAssets ? (
+                  <p className="text-xs text-muted-foreground">Loading hardware...</p>
+                ) : userAssets.length === 0 ? (
+                  <div className="p-4 text-center rounded-lg border border-dashed text-xs text-muted-foreground bg-muted/20">
+                    No company IT hardware currently assigned to this employee.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {userAssets.map((asset: any) => (
+                      <div
+                        key={asset.id}
+                        className="p-3 rounded-lg border bg-card flex items-center justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="h-8 w-8 rounded-md bg-muted/60 flex items-center justify-center shrink-0 border border-border/70">
+                            <Laptop className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs text-foreground truncate">
+                              {asset.name}
+                            </p>
+                            <p className="font-mono text-[10px] text-muted-foreground">
+                              SN: {asset.serialNumber}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <Badge variant="default" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-[10px]">
+                            Deployed
+                          </Badge>
+                          {asset.assignedDate && (
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              Assigned {new Date(asset.assignedDate).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <DialogFooter className="pt-2 border-t">
+              <Button type="button" variant="outline" size="sm" onClick={() => setViewingUser(null)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

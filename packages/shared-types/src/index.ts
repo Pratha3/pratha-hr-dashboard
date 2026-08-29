@@ -27,6 +27,19 @@ export const Permissions = {
   ANNOUNCEMENT_CREATE: 'ANNOUNCEMENT_CREATE',
   ANNOUNCEMENT_DELETE: 'ANNOUNCEMENT_DELETE',
 
+  // Projects & Staffing
+  PROJECT_READ: 'PROJECT_READ',
+  PROJECT_CREATE: 'PROJECT_CREATE',
+  PROJECT_UPDATE: 'PROJECT_UPDATE',
+  PROJECT_DELETE: 'PROJECT_DELETE',
+
+  // Hardware & IT Assets
+  ASSET_READ: 'ASSET_READ',
+  ASSET_CREATE: 'ASSET_CREATE',
+  ASSET_UPDATE: 'ASSET_UPDATE',
+  ASSET_DELETE: 'ASSET_DELETE',
+  ASSET_ASSIGN: 'ASSET_ASSIGN',
+
   // Dashboard & Audit
   DASHBOARD_READ: 'DASHBOARD_READ',
   AUDIT_READ: 'AUDIT_READ'
@@ -54,6 +67,13 @@ export const HR_PERMISSIONS: PermissionName[] = [
   Permissions.LEAVE_MANAGE,
   Permissions.ANNOUNCEMENT_READ,
   Permissions.ANNOUNCEMENT_CREATE,
+  Permissions.PROJECT_READ,
+  Permissions.PROJECT_CREATE,
+  Permissions.PROJECT_UPDATE,
+  Permissions.ASSET_READ,
+  Permissions.ASSET_CREATE,
+  Permissions.ASSET_UPDATE,
+  Permissions.ASSET_ASSIGN,
   Permissions.DASHBOARD_READ
 ];
 
@@ -64,6 +84,8 @@ export const EMPLOYEE_PERMISSIONS: PermissionName[] = [
   Permissions.LEAVE_READ,
   Permissions.LEAVE_APPLY,
   Permissions.ANNOUNCEMENT_READ,
+  Permissions.PROJECT_READ,
+  Permissions.ASSET_READ,
   Permissions.DASHBOARD_READ
 ];
 
@@ -72,6 +94,9 @@ export const ALL_PERMISSIONS: PermissionName[] = Object.values(Permissions);
 // Enums
 export type EmployeeStatus = 'ACTIVE' | 'PROBATION' | 'NOTICE_PERIOD' | 'INACTIVE';
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED';
+export type AssetType = 'LAPTOP' | 'MONITOR' | 'MOBILE_DEVICE' | 'SECURITY_KEY' | 'PERIPHERAL' | 'OTHER';
+export type AssetStatus = 'ASSIGNED' | 'AVAILABLE' | 'IN_REPAIR' | 'RETIRED';
 
 // Standard API Response Interfaces
 export interface ApiResponseMeta {
@@ -254,4 +279,73 @@ export interface DashboardStatsDto {
   activeDepartments: number;
   pendingLeaves: number;
   totalAnnouncements: number;
+  activeProjects: number;
+  totalAssets: number;
+  assignedAssets: number;
 }
+
+// Project & Staffing DTOs
+export interface ProjectMemberDto {
+  id: string;
+  projectId: string;
+  userId: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    employeeCode?: string | null;
+    position?: string | null;
+    profileImageUrl?: string | null;
+    department?: {
+      id: string;
+      name: string;
+    } | null;
+  };
+  role: string;
+  allocation: number;
+  assignedAt: Date | string;
+}
+
+export interface ProjectDto {
+  id: string;
+  name: string;
+  clientName?: string | null;
+  description?: string | null;
+  status: ProjectStatus;
+  startDate?: Date | string | null;
+  endDate?: Date | string | null;
+  members?: ProjectMemberDto[];
+  _count?: {
+    members?: number;
+  };
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+// Hardware & IT Asset DTOs
+export interface AssetDto {
+  id: string;
+  name: string;
+  serialNumber: string;
+  type: AssetType;
+  status: AssetStatus;
+  assignedToId?: string | null;
+  assignedTo?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    employeeCode?: string | null;
+    position?: string | null;
+    department?: {
+      id: string;
+      name: string;
+    } | null;
+  } | null;
+  assignedDate?: Date | string | null;
+  notes?: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
