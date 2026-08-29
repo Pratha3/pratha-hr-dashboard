@@ -65,16 +65,16 @@ export default function LoginPage() {
     setErrorMessage(null);
   };
 
-  // If session is being verified or user is already logged in, show sleek loading indicator
-  if (isLoading || user) {
+  // If user is already logged in, show sleek redirecting indicator
+  if (user) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold font-display text-lg animate-pulse shadow-sm">
-            N
+            P
           </div>
           <p className="text-xs text-muted-foreground animate-pulse">
-            {user ? 'Redirecting to Dashboard...' : 'Verifying active session...'}
+            Redirecting to Dashboard...
           </p>
         </div>
       </div>
