@@ -4,7 +4,7 @@ services:
     env: node
     region: oregon
     plan: starter
-    buildCommand: pnpm install && pnpm run build:api
+    buildCommand: pnpm run render-build
     startCommand: pnpm --filter @ems/api start
     envVars:
       - key: NODE_ENV
