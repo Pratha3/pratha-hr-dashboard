@@ -30,7 +30,7 @@
     
     "build:web": "pnpm --filter @ems/shared-types build && pnpm --filter @ems/validation build && pnpm --filter @ems/web build",
     "build:api": "pnpm --filter @ems/shared-types build && pnpm --filter @ems/validation build && pnpm --filter @ems/api build",
-    "render-build": "pnpm install && pnpm run build:api",
+    "render-build": "pnpm install --no-frozen-lockfile && pnpm run build:api",
     "build:vercel": "pnpm --filter @ems/shared-types build && pnpm --filter @ems/validation build && pnpm --filter @ems/web build",
     
     "test": "bun --filter @ems/api test",
