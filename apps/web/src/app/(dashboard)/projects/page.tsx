@@ -62,6 +62,8 @@ import {
 import {
   createProjectSchema,
   CreateProjectInput,
+  updateProjectSchema,
+  UpdateProjectInput,
   assignProjectMemberSchema,
   AssignProjectMemberInput
 } from '@ems/validation';
@@ -91,16 +93,14 @@ export default function ProjectsPage() {
   });
 
   // Fetch Workforce for member dropdown
-  const { data: usersData } = useQuery<{ users: UserSummary[] }>({
+  const { data: availableEmployees = [] } = useQuery<UserSummary[]>({
     queryKey: ['users-for-assignment'],
     queryFn: async () => {
       const res = await apiClient.get('/users?limit=100');
-      return res.data?.data || { users: [] };
+      return (res.data?.data || []) as UserSummary[];
     },
     enabled: Boolean(staffingProject)
   });
-
-  const availableEmployees = usersData?.users || [];
 
   // Create Project Form
   const {
@@ -129,6 +129,39 @@ export default function ProjectsPage() {
     }
   });
 
+  // Edit Project Form
+  const {
+    register: registerEdit,
+    handleSubmit: handleEditSubmit,
+    reset: resetEdit,
+    setValue: setEditValue,
+    formState: { errors: editErrors, isSubmitting: isSubmittingEdit }
+  } = useForm<UpdateProjectInput>({
+    resolver: zodResolver(updateProjectSchema)
+  });
+
+  // Populate edit form when editingProject changes
+  React.useEffect(() => {
+    if (editingProject) {
+      setEditValue('name', editingProject.name);
+      setEditValue('clientName', editingProject.clientName || '');
+      setEditValue('status', editingProject.status);
+      setEditValue(
+        'startDate',
+        editingProject.startDate
+          ? new Date(editingProject.startDate).toISOString().split('T')[0]
+          : ''
+      );
+      setEditValue(
+        'endDate',
+        editingProject.endDate
+          ? new Date(editingProject.endDate).toISOString().split('T')[0]
+          : ''
+      );
+      setEditValue('description', editingProject.description || '');
+    }
+  }, [editingProject, setEditValue]);
+
   // Create Mutation
   const createMutation = useMutation({
     mutationFn: async (data: CreateProjectInput) => {
@@ -144,6 +177,22 @@ export default function ProjectsPage() {
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.error?.message || 'Failed to create project');
+    }
+  });
+
+  // Update Mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: UpdateProjectInput }) => {
+      const res = await apiClient.put(`/projects/${id}`, data);
+      return res.data?.data;
+    },
+    onSuccess: () => {
+      toast.success('Project updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      setEditingProject(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error?.message || 'Failed to update project');
     }
   });
 
@@ -370,13 +419,22 @@ export default function ProjectsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
                           {canUpdate && (
-                            <DropdownMenuItem
-                              onClick={() => setStaffingProject(project)}
-                              className="text-xs gap-2"
-                            >
-                              <UserPlus className="h-3.5 w-3.5" />
-                              <span>Manage Staffing</span>
-                            </DropdownMenuItem>
+                            <>
+                              <DropdownMenuItem
+                                onClick={() => setEditingProject(project)}
+                                className="text-xs gap-2"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                                <span>Edit Project</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setStaffingProject(project)}
+                                className="text-xs gap-2"
+                              >
+                                <UserPlus className="h-3.5 w-3.5" />
+                                <span>Manage Staffing</span>
+                              </DropdownMenuItem>
+                            </>
                           )}
                           {canDelete && (
                             <>
@@ -539,6 +597,79 @@ export default function ProjectsPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Project Modal */}
+      {editingProject && (
+        <Dialog open={Boolean(editingProject)} onOpenChange={(open) => !open && setEditingProject(null)}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Edit Project</DialogTitle>
+              <DialogDescription>
+                Update details and status for {editingProject.name}.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form
+              onSubmit={handleEditSubmit((d) =>
+                updateMutation.mutate({ id: editingProject.id, data: d })
+              )}
+              className="space-y-4"
+            >
+              <FormField label="Project Name" error={editErrors.name?.message} required>
+                <Input placeholder="e.g. NextGen Mobile Banking" {...registerEdit('name')} />
+              </FormField>
+
+              <FormField label="Client / Business Unit" error={editErrors.clientName?.message}>
+                <Input placeholder="e.g. Apex Financial Corp" {...registerEdit('clientName')} />
+              </FormField>
+
+              <FormField label="Status" error={editErrors.status?.message} required>
+                <select
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-xs focus:outline-hidden focus:ring-1 focus:ring-ring"
+                  {...registerEdit('status')}
+                >
+                  <option value="PLANNING">Planning</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="ON_HOLD">On Hold</option>
+                  <option value="COMPLETED">Completed</option>
+                </select>
+              </FormField>
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Start Date" error={editErrors.startDate?.message}>
+                  <Input type="date" {...registerEdit('startDate')} />
+                </FormField>
+
+                <FormField label="Target End Date" error={editErrors.endDate?.message}>
+                  <Input type="date" {...registerEdit('endDate')} />
+                </FormField>
+              </div>
+
+              <FormField label="Description" error={editErrors.description?.message}>
+                <Textarea
+                  placeholder="Overview of project objectives, scope, and deliverable timeline..."
+                  className="resize-none h-20"
+                  {...registerEdit('description')}
+                />
+              </FormField>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditingProject(null)}
+                  disabled={isSubmittingEdit}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmittingEdit}>
+                  {isSubmittingEdit ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Manage Staffing / Assign Members Modal */}
       {staffingProject && (

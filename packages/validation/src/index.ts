@@ -238,8 +238,20 @@ export const createProjectSchema = z.object({
   clientName: z.string().trim().max(150).optional().nullable(),
   description: z.string().trim().max(1000).optional().nullable(),
   status: z.enum(['PLANNING', 'ACTIVE', 'ON_HOLD', 'COMPLETED']).optional().default('ACTIVE'),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be YYYY-MM-DD').optional().nullable(),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be YYYY-MM-DD').optional().nullable()
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Start date must be YYYY-MM-DD')
+    .or(z.literal(''))
+    .optional()
+    .nullable()
+    .transform((val) => (val === '' ? null : val)),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'End date must be YYYY-MM-DD')
+    .or(z.literal(''))
+    .optional()
+    .nullable()
+    .transform((val) => (val === '' ? null : val))
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;

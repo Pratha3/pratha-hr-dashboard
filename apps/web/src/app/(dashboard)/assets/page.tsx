@@ -104,16 +104,14 @@ export default function AssetsPage() {
   const assets = assetsData?.assets || [];
 
   // Fetch Workforce for assignment modal
-  const { data: usersData } = useQuery<{ users: UserSummary[] }>({
+  const { data: availableEmployees = [] } = useQuery<UserSummary[]>({
     queryKey: ['users-for-asset-assignment'],
     queryFn: async () => {
       const res = await apiClient.get('/users?limit=100');
-      return res.data?.data || { users: [] };
+      return (res.data?.data || []) as UserSummary[];
     },
     enabled: Boolean(assigningAsset)
   });
-
-  const availableEmployees = usersData?.users || [];
 
   // Create Asset Form
   const {
