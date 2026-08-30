@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pratha-hr-api
+    env: node
+    region: oregon
+    plan: starter
+    buildCommand: pnpm install && pnpm run build:api
+    startCommand: pnpm --filter @ems/api start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        sync: false
