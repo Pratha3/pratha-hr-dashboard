@@ -29,13 +29,19 @@ export function createApp(): Express {
   // CORS Configuration
   app.use(
     cors({
-      origin: [
-        env.CORS_ORIGIN,
-        'http://localhost:3000',
-        'http://127.0.0.1:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3001'
-      ],
+      origin: (origin, callback) => {
+        if (
+          !origin ||
+          origin === env.CORS_ORIGIN ||
+          origin.endsWith('.vercel.app') ||
+          origin.includes('localhost') ||
+          origin.includes('127.0.0.1')
+        ) {
+          callback(null, true);
+        } else {
+          callback(null, true);
+        }
+      },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: [
