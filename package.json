@@ -1,40 +1,123 @@
 {
+  
   "name": "pratha-hr-dashboard",
+  
   "version": "1.0.0",
+  
   "private": true,
+  
+  "packageManager": "pnpm@10.28.0",
+  
   "description": "Enterprise HR Management System Backend & Dashboard",
+  
   "workspaces": [
+    
     "apps/*",
+    
     "packages/*"
+    
   ],
+  
   "scripts": {
+    
     "dev": "bun --filter @ems/api dev",
+    
     "dev:api": "bun --filter @ems/api dev",
+    
     "dev:web": "bun --filter @ems/web dev",
-    "build": "bun --filter @ems/shared-types build && bun --filter @ems/validation build && bun --filter @ems/api build && bun --filter @ems/web build",
-    "build:web": "bun --filter @ems/web build",
+    
+    "build": "pnpm --filter @ems/shared-types build && pnpm --filter @ems/validation build && pnpm --filter @ems/api build && pnpm --filter @ems/web build",
+    
+    "build:web": "pnpm --filter @ems/shared-types build && pnpm --filter @ems/validation build && pnpm --filter @ems/web build",
+    
+    "build:vercel": "pnpm --filter @ems/shared-types build && pnpm --filter @ems/validation build && pnpm --filter @ems/web build",
+    
     "test": "bun --filter @ems/api test",
+    
     "test:fuzz": "bun --filter @ems/api test:fuzz",
+    
     "test:ui": "bun --filter @ems/api test:ui",
+    
     "test:e2e": "bun --filter @ems/web test:e2e",
+    
     "test:e2e:ui": "bun --filter @ems/web test:e2e:ui",
+    
     "db:migrate": "prisma migrate dev",
+    
     "db:push": "prisma db push",
+    
     "db:seed": "prisma db seed",
+    
     "db:studio": "prisma studio",
+    
     "db:generate": "prisma generate"
+    
   },
+  
   "prisma": {
+    
     "seed": "tsx prisma/seed.ts"
+    
   },
+  
   "dependencies": {
+    
     "@prisma/client": "^5.16.1"
+    
   },
+  
   "devDependencies": {
+    
     "@types/node": "^20.14.9",
+    
     "argon2": "^0.45.1",
+    
     "prisma": "^5.16.1",
+    
     "tsx": "^4.16.2",
+    
     "typescript": "^5.5.2"
+    
   }
+  
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
