@@ -50,7 +50,8 @@
     
     "db:studio": "prisma studio",
     
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "postinstall": "prisma generate"
     
   },
   
