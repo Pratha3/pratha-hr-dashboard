@@ -4,8 +4,8 @@ import { AuditLogQueryInput } from '@ems/validation';
 export class AuditService {
   constructor(private repo: AuditRepository = auditRepository) {}
 
-  async listLogs(params: AuditLogQueryInput) {
-    return this.repo.findAll(params);
+  async listLogs(params: AuditLogQueryInput, organizationId?: string) {
+    return this.repo.findAll({ ...params, organizationId });
   }
 }
 

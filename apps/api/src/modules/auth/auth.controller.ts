@@ -17,6 +17,36 @@ const REFRESH_COOKIE_OPTIONS = {
 export class AuthController {
   constructor(private service: AuthService = authService) {}
 
+  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const result = await this.service.register(req.body);
+
+      // Set HttpOnly refresh token cookie
+      res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, REFRESH_COOKIE_OPTIONS);
+
+      // Set CSRF token cookie
+      const csrfToken = generateCsrfToken();
+      res.cookie(CSRF_COOKIE_NAME, csrfToken, {
+        httpOnly: false,
+        secure: env.COOKIE_SECURE,
+        sameSite: 'lax',
+        path: '/'
+      });
+
+      sendSuccess(
+        res,
+        {
+          user: result.user,
+          accessToken: result.accessToken,
+          activeOrganization: result.organization
+        },
+        201
+      );
+    } catch (err) {
+      next(err);
+    }
+  };
+
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.service.login(req.body);
@@ -35,7 +65,8 @@ export class AuthController {
 
       sendSuccess(res, {
         user: result.user,
-        accessToken: result.accessToken
+        accessToken: result.accessToken,
+        activeOrganization: result.activeOrganization
       });
     } catch (err) {
       next(err);
@@ -100,7 +131,7 @@ export class AuthController {
 
   me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await this.service.me(req.user!.id);
+      const user = await this.service.me(req.user!.id, req.organizationId);
       sendSuccess(res, { user });
     } catch (err) {
       next(err);
@@ -109,7 +140,7 @@ export class AuthController {
 
   updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await this.service.updateProfile(req.user!.id, req.body);
+      const user = await this.service.updateProfile(req.user!.id, req.body, req.organizationId);
       sendSuccess(res, { user });
     } catch (err) {
       next(err);

@@ -7,7 +7,11 @@ export class UsersController {
 
   list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = await this.service.listUsers(req.query as any, req.user!.permissions);
+      const result = await this.service.listUsers(
+        req.query as any,
+        req.user!.permissions,
+        req.organizationId
+      );
       sendSuccess(res, result.users, 200, result.meta);
     } catch (err) {
       next(err);
@@ -16,7 +20,11 @@ export class UsersController {
 
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await this.service.getUserById(req.params.id, req.user!.permissions);
+      const user = await this.service.getUserById(
+        req.params.id,
+        req.user!.permissions,
+        req.organizationId
+      );
       sendSuccess(res, user);
     } catch (err) {
       next(err);
@@ -25,7 +33,7 @@ export class UsersController {
 
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await this.service.createUser(req.body, req.user?.id);
+      const user = await this.service.createUser(req.body, req.user?.id, req.organizationId);
       sendSuccess(res, user, 201);
     } catch (err) {
       next(err);
@@ -34,7 +42,12 @@ export class UsersController {
 
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await this.service.updateUser(req.params.id, req.body, req.user?.id);
+      const user = await this.service.updateUser(
+        req.params.id,
+        req.body,
+        req.user?.id,
+        req.organizationId
+      );
       sendSuccess(res, user);
     } catch (err) {
       next(err);
@@ -43,7 +56,12 @@ export class UsersController {
 
   updateStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await this.service.updateUserStatus(req.params.id, req.body, req.user?.id);
+      const user = await this.service.updateUserStatus(
+        req.params.id,
+        req.body,
+        req.user?.id,
+        req.organizationId
+      );
       sendSuccess(res, user);
     } catch (err) {
       next(err);
@@ -52,16 +70,21 @@ export class UsersController {
 
   updateRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const user = await this.service.updateUserRole(req.params.id, req.body, req.user?.id);
+      const user = await this.service.updateUserRole(
+        req.params.id,
+        req.body,
+        req.user?.id,
+        req.organizationId
+      );
       sendSuccess(res, user);
     } catch (err) {
       next(err);
     }
   };
 
-  getMetadata = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  getMetadata = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const metadata = await this.service.getMetadata();
+      const metadata = await this.service.getMetadata(req.organizationId);
       sendSuccess(res, metadata);
     } catch (err) {
       next(err);

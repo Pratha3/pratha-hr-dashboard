@@ -38,6 +38,13 @@ export async function authMiddleware(req: Request, _res: Response, next: NextFun
               }
             }
           }
+        },
+        memberships: {
+          where: { isActive: true, organization: { isActive: true } },
+          include: {
+            organization: true,
+            role: true
+          }
         }
       }
     });
@@ -63,7 +70,14 @@ export async function authMiddleware(req: Request, _res: Response, next: NextFun
       roleId: user.roleId,
       roleName: user.role.name,
       permissions,
-      isActive: user.isActive
+      isActive: user.isActive,
+      organizations: (user.memberships || []).map((m: any) => ({
+        id: m.organization.id,
+        name: m.organization.name,
+        slug: m.organization.slug,
+        roleId: m.roleId,
+        roleName: m.role.name
+      }))
     };
 
     next();

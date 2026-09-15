@@ -48,50 +48,147 @@ enum AssetStatus {
   RETIRED
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
 // ==========================================
-// 2. AUTH & USER / EMPLOYEE (UNIFIED)
+// 2. MULTI-TENANCY CORE
+// ==========================================
+model Organization {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  name                String                   @db.VarChar(150)
+  slug                String                   @unique @db.VarChar(100)
+  domain              String?                  @db.VarChar(150)
+  logoUrl             String?                  @db.Text
+  isActive            Boolean                  @default(true)
+  createdById         String?                  @db.Uuid
+  createdBy           User?                    @relation("OrgCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  memberships         OrganizationMembership[]
+  invitations         OrganizationInvitation[]
+  roles               Role[]
+  departments         Department[]
+  leaveTypes          LeaveType[]
+  leaveRequests       LeaveRequest[]
+  announcements       Announcement[]
+  projects            Project[]
+  assets              Asset[]
+  auditLogs           AuditLog[]
+
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  @@index([slug])
+  @@index([isActive])
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id                  String         @id @default(uuid()) @db.Uuid
+  organizationId      String         @db.Uuid
+  organization        Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId              String         @db.Uuid
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleId              String         @db.Uuid
+  role                Role           @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  
+  // Employment attributes within this organization
+  employeeCode        String?        @db.VarChar(50)
+  position            String?        @db.VarChar(100)
+  departmentId        String?        @db.Uuid
+  department          Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  joiningDate         DateTime?      @db.Date
+  salary              Decimal?       @db.Decimal(12, 2)
+  status              EmployeeStatus @default(ACTIVE)
+  isActive            Boolean        @default(true)
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@unique([organizationId, userId])
+  @@unique([organizationId, employeeCode])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([roleId])
+  @@index([departmentId])
+  @@index([status])
+  @@index([isActive])
+  @@map("organization_memberships")
+}
+
+model OrganizationInvitation {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String           @db.VarChar(255)
+  roleId         String           @db.Uuid
+  role           Role             @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  tokenHash      String           @unique @db.VarChar(255)
+  invitedById    String?          @db.Uuid
+  invitedBy      User?            @relation("InvitationsSent", fields: [invitedById], references: [id], onDelete: SetNull)
+  status         InvitationStatus @default(PENDING)
+  expiresAt      DateTime
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([organizationId])
+  @@index([email])
+  @@index([tokenHash])
+  @@index([status])
+  @@map("organization_invitations")
+}
+
+// ==========================================
+// 3. AUTH & USER / IDENTITY
 // ==========================================
 model User {
-  id                  String               @id @default(uuid()) @db.Uuid
-  employeeCode        String?              @unique @db.VarChar(50)
-  firstName           String               @db.VarChar(100)
-  lastName            String               @db.VarChar(100)
-  email               String               @unique @db.VarChar(255)
-  passwordHash        String               @db.VarChar(255)
-  phone               String?              @db.VarChar(50)
-  profileImageUrl     String?              @db.Text
+  id                  String                   @id @default(uuid()) @db.Uuid
+  employeeCode        String?                  @db.VarChar(50)
+  firstName           String                   @db.VarChar(100)
+  lastName            String                   @db.VarChar(100)
+  email               String                   @unique @db.VarChar(255)
+  passwordHash        String                   @db.VarChar(255)
+  phone               String?                  @db.VarChar(50)
+  profileImageUrl     String?                  @db.Text
   
-  // Employment Info
-  position            String?              @db.VarChar(100)
-  departmentId        String?              @db.Uuid
-  department          Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  joiningDate         DateTime?            @db.Date
-  salary              Decimal?             @db.Decimal(12, 2)
-  status              EmployeeStatus       @default(ACTIVE)
+  // Employment Info (Legacy/fallback fields preserved for backwards compatibility)
+  position            String?                  @db.VarChar(100)
+  departmentId        String?                  @db.Uuid
+  department          Department?              @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  joiningDate         DateTime?                @db.Date
+  salary              Decimal?                 @db.Decimal(12, 2)
+  status              EmployeeStatus           @default(ACTIVE)
 
-  // Role & RBAC
-  roleId              String               @db.Uuid
-  role                Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  // Role & RBAC (Legacy fallback preserved)
+  roleId              String                   @db.Uuid
+  role                Role                     @relation(fields: [roleId], references: [id], onDelete: Restrict)
 
   // Security & Auth metadata
-  isActive            Boolean              @default(true)
-  isEmailVerified     Boolean              @default(false)
-  failedLoginAttempts Int                  @default(0)
+  isActive            Boolean                  @default(true)
+  isEmailVerified     Boolean                  @default(false)
+  failedLoginAttempts Int                      @default(0)
   lockedUntil         DateTime?
   lastLoginAt         DateTime?
 
   // Relations
+  memberships         OrganizationMembership[]
+  invitationsSent     OrganizationInvitation[] @relation("InvitationsSent")
+  createdOrganizations Organization[]          @relation("OrgCreator")
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   auditLogs           AuditLog[]
-  leaveRequests       LeaveRequest[]       @relation("UserLeaves")
-  actionedLeaves      LeaveRequest[]       @relation("ActionedLeaves")
+  leaveRequests       LeaveRequest[]           @relation("UserLeaves")
+  actionedLeaves      LeaveRequest[]           @relation("ActionedLeaves")
   announcements       Announcement[]
   projectMembers      ProjectMember[]
   assignedAssets      Asset[]
 
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
   @@index([email])
   @@index([employeeCode])
@@ -103,18 +200,24 @@ model User {
 }
 
 // ==========================================
-// 3. RBAC (ROLES & PERMISSIONS)
+// 4. RBAC (ROLES & PERMISSIONS)
 // ==========================================
 model Role {
-  id              String           @id @default(uuid()) @db.Uuid
-  name            String           @unique @db.VarChar(50)
-  description     String?          @db.Text
-  isSystem        Boolean          @default(false)
+  id              String                   @id @default(uuid()) @db.Uuid
+  organizationId  String?                  @db.Uuid
+  organization    Organization?            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name            String                   @db.VarChar(50)
+  description     String?                  @db.Text
+  isSystem        Boolean                  @default(false)
   users           User[]
+  memberships     OrganizationMembership[]
+  invitations     OrganizationInvitation[]
   rolePermissions RolePermission[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
 
+  @@unique([organizationId, name])
+  @@index([organizationId])
   @@map("roles")
 }
 
@@ -144,7 +247,7 @@ model RolePermission {
 }
 
 // ==========================================
-// 4. AUTH TOKENS
+// 5. AUTH TOKENS
 // ==========================================
 model RefreshToken {
   id        String    @id @default(uuid()) @db.Uuid
@@ -177,54 +280,66 @@ model PasswordResetToken {
 }
 
 // ==========================================
-// 5. DEPARTMENT
+// 6. DEPARTMENT
 // ==========================================
 model Department {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String   @unique @db.VarChar(100)
-  description String?  @db.Text
-  isActive    Boolean  @default(true)
-  users       User[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String                   @id @default(uuid()) @db.Uuid
+  organizationId String?                  @db.Uuid
+  organization   Organization?            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String                   @db.VarChar(100)
+  description    String?                  @db.Text
+  isActive       Boolean                  @default(true)
+  users          User[]
+  memberships    OrganizationMembership[]
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
 
+  @@unique([organizationId, name])
+  @@index([organizationId])
   @@index([name])
   @@index([isActive])
   @@map("departments")
 }
 
 // ==========================================
-// 6. LEAVE MANAGEMENT
+// 7. LEAVE MANAGEMENT
 // ==========================================
 model LeaveType {
-  id          String         @id @default(uuid()) @db.Uuid
-  name        String         @unique @db.VarChar(50)
-  daysAllowed Int            @default(12)
-  requests    LeaveRequest[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String?        @db.Uuid
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String         @db.VarChar(50)
+  daysAllowed    Int            @default(12)
+  requests       LeaveRequest[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
+  @@unique([organizationId, name])
+  @@index([organizationId])
   @@map("leave_types")
 }
 
 model LeaveRequest {
-  id          String      @id @default(uuid()) @db.Uuid
-  userId      String      @db.Uuid
-  user        User        @relation("UserLeaves", fields: [userId], references: [id], onDelete: Cascade)
-  leaveTypeId String      @db.Uuid
-  leaveType   LeaveType   @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
-  startDate   DateTime    @db.Date
-  endDate     DateTime    @db.Date
-  reason      String      @db.Text
-  status      LeaveStatus @default(PENDING)
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @db.Uuid
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String        @db.Uuid
+  user           User          @relation("UserLeaves", fields: [userId], references: [id], onDelete: Cascade)
+  leaveTypeId    String        @db.Uuid
+  leaveType      LeaveType     @relation(fields: [leaveTypeId], references: [id], onDelete: Restrict)
+  startDate      DateTime      @db.Date
+  endDate        DateTime      @db.Date
+  reason         String        @db.Text
+  status         LeaveStatus   @default(PENDING)
   
-  actionById  String?     @db.Uuid
-  actionBy    User?       @relation("ActionedLeaves", fields: [actionById], references: [id], onDelete: SetNull)
-  actionNote  String?     @db.Text
+  actionById     String?       @db.Uuid
+  actionBy       User?         @relation("ActionedLeaves", fields: [actionById], references: [id], onDelete: SetNull)
+  actionNote     String?       @db.Text
   
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId])
   @@index([userId])
   @@index([leaveTypeId])
   @@index([status])
@@ -232,36 +347,42 @@ model LeaveRequest {
 }
 
 // ==========================================
-// 7. ANNOUNCEMENTS
+// 8. ANNOUNCEMENTS
 // ==========================================
 model Announcement {
-  id        String   @id @default(uuid()) @db.Uuid
-  title     String   @db.VarChar(200)
-  content   String   @db.Text
-  authorId  String   @db.Uuid
-  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @db.Uuid
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String        @db.VarChar(200)
+  content        String        @db.Text
+  authorId       String        @db.Uuid
+  author         User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
+  @@index([organizationId])
   @@index([authorId])
   @@map("announcements")
 }
 
 // ==========================================
-// 8. AUDIT LOG
+// 9. AUDIT LOG
 // ==========================================
 model AuditLog {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String?  @db.Uuid
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action    String   @db.VarChar(100)
-  entity    String   @db.VarChar(100)
-  entityId  String?  @db.VarChar(100)
-  metadata  Json?
-  ipAddress String?  @db.VarChar(50)
-  userAgent String?  @db.Text
-  createdAt DateTime @default(now())
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @db.Uuid
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?       @db.Uuid
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action         String        @db.VarChar(100)
+  entity         String        @db.VarChar(100)
+  entityId       String?       @db.VarChar(100)
+  metadata       Json?
+  ipAddress      String?       @db.VarChar(50)
+  userAgent      String?       @db.Text
+  createdAt      DateTime      @default(now())
 
+  @@index([organizationId])
   @@index([userId])
   @@index([entity])
   @@index([action])
@@ -270,20 +391,23 @@ model AuditLog {
 }
 
 // ==========================================
-// 9. PROJECTS & RESOURCE ALLOCATION
+// 10. PROJECTS & RESOURCE ALLOCATION
 // ==========================================
 model Project {
-  id          String          @id @default(uuid()) @db.Uuid
-  name        String          @db.VarChar(150)
-  clientName  String?         @db.VarChar(150)
-  description String?         @db.Text
-  status      ProjectStatus   @default(ACTIVE)
-  startDate   DateTime?       @db.Date
-  endDate     DateTime?       @db.Date
-  members     ProjectMember[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String?         @db.Uuid
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String          @db.VarChar(150)
+  clientName     String?         @db.VarChar(150)
+  description    String?         @db.Text
+  status         ProjectStatus   @default(ACTIVE)
+  startDate      DateTime?       @db.Date
+  endDate        DateTime?       @db.Date
+  members        ProjectMember[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
+  @@index([organizationId])
   @@index([status])
   @@map("projects")
 }
@@ -305,25 +429,30 @@ model ProjectMember {
 }
 
 // ==========================================
-// 10. HARDWARE & IT ASSETS
+// 11. HARDWARE & IT ASSETS
 // ==========================================
 model Asset {
-  id           String      @id @default(uuid()) @db.Uuid
-  name         String      @db.VarChar(100)
-  serialNumber String      @unique @db.VarChar(100)
-  type         AssetType   @default(LAPTOP)
-  status       AssetStatus @default(AVAILABLE)
-  assignedToId String?     @db.Uuid
-  assignedTo   User?       @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
-  assignedDate DateTime?
-  notes        String?     @db.Text
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @db.Uuid
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String        @db.VarChar(100)
+  serialNumber   String        @db.VarChar(100)
+  type           AssetType     @default(LAPTOP)
+  status         AssetStatus   @default(AVAILABLE)
+  assignedToId   String?       @db.Uuid
+  assignedTo     User?         @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedDate   DateTime?
+  notes          String?       @db.Text
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
+  @@unique([organizationId, serialNumber])
+  @@index([organizationId])
   @@index([assignedToId])
   @@index([status])
   @@index([type])
   @@index([serialNumber])
   @@map("assets")
 }
+
 

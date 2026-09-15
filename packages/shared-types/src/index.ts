@@ -42,12 +42,20 @@ export const Permissions = {
 
   // Dashboard & Audit
   DASHBOARD_READ: 'DASHBOARD_READ',
-  AUDIT_READ: 'AUDIT_READ'
+  AUDIT_READ: 'AUDIT_READ',
+
+  // Organization & Multi-Tenancy
+  ORG_READ: 'ORG_READ',
+  ORG_UPDATE: 'ORG_UPDATE',
+  ORG_MANAGE: 'ORG_MANAGE',
+  MEMBER_INVITE: 'MEMBER_INVITE',
+  MEMBER_MANAGE: 'MEMBER_MANAGE'
 } as const;
 
 export type PermissionName = (typeof Permissions)[keyof typeof Permissions];
 
 export const SystemRoles = {
+  OWNER: 'OWNER',
   ADMIN: 'ADMIN',
   HR: 'HR',
   EMPLOYEE: 'EMPLOYEE'
@@ -57,6 +65,8 @@ export type SystemRoleName = (typeof SystemRoles)[keyof typeof SystemRoles];
 
 export const HR_PERMISSIONS: PermissionName[] = [
   Permissions.AUTH_LOGIN,
+  Permissions.ORG_READ,
+  Permissions.MEMBER_INVITE,
   Permissions.USER_READ,
   Permissions.USER_READ_SALARY,
   Permissions.USER_CREATE,
@@ -79,6 +89,7 @@ export const HR_PERMISSIONS: PermissionName[] = [
 
 export const EMPLOYEE_PERMISSIONS: PermissionName[] = [
   Permissions.AUTH_LOGIN,
+  Permissions.ORG_READ,
   Permissions.USER_READ,
   Permissions.DEPARTMENT_READ,
   Permissions.LEAVE_READ,
@@ -97,6 +108,7 @@ export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED';
 export type AssetType = 'LAPTOP' | 'MONITOR' | 'MOBILE_DEVICE' | 'SECURITY_KEY' | 'PERIPHERAL' | 'OTHER';
 export type AssetStatus = 'ASSIGNED' | 'AVAILABLE' | 'IN_REPAIR' | 'RETIRED';
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
 
 // Standard API Response Interfaces
 export interface ApiResponseMeta {
@@ -131,9 +143,83 @@ export interface ApiErrorResponse {
   requestId: string;
 }
 
+// Multi-Tenancy DTOs
+export interface OrganizationDto {
+  id: string;
+  name: string;
+  slug: string;
+  domain?: string | null;
+  logoUrl?: string | null;
+  isActive: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  _count?: {
+    memberships?: number;
+    departments?: number;
+    projects?: number;
+  };
+}
+
+export interface OrganizationMembershipDto {
+  id: string;
+  organizationId: string;
+  organization?: OrganizationDto;
+  userId: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profileImageUrl?: string | null;
+  };
+  roleId: string;
+  role?: {
+    id: string;
+    name: string;
+    description?: string | null;
+  };
+  employeeCode?: string | null;
+  position?: string | null;
+  departmentId?: string | null;
+  department?: {
+    id: string;
+    name: string;
+  } | null;
+  joiningDate?: Date | string | null;
+  salary?: number | null;
+  status: EmployeeStatus;
+  isActive: boolean;
+  createdAt: Date | string;
+}
+
+export interface InvitationDto {
+  id: string;
+  organizationId: string;
+  organization?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  email: string;
+  roleId: string;
+  role?: {
+    id: string;
+    name: string;
+  };
+  status: InvitationStatus;
+  expiresAt: Date | string;
+  invitedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  } | null;
+  createdAt: Date | string;
+}
+
 // Department DTO
 export interface DepartmentDto {
   id: string;
+  organizationId?: string | null;
   name: string;
   description?: string | null;
   isActive: boolean;
@@ -168,11 +254,22 @@ export interface UserSummary {
     name: string;
     description?: string | null;
   };
+  organizationId?: string | null;
+  organizationName?: string | null;
+  memberships?: OrganizationMembershipDto[];
   isActive: boolean;
   isEmailVerified: boolean;
   lastLoginAt?: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface UserOrgContext {
+  id: string;
+  name: string;
+  slug: string;
+  roleId: string;
+  roleName: string;
 }
 
 export interface AuthUserPayload {
@@ -185,11 +282,16 @@ export interface AuthUserPayload {
   permissions: PermissionName[];
   isActive: boolean;
   departmentId?: string | null;
+  organizationId?: string | null;
+  organizationName?: string | null;
+  organizationSlug?: string | null;
+  organizations?: UserOrgContext[];
 }
 
 export interface LoginResponseData {
-  user: UserSummary & { permissions: PermissionName[] };
+  user: UserSummary & { permissions: PermissionName[]; organizations?: UserOrgContext[] };
   accessToken: string;
+  activeOrganization?: OrganizationDto | null;
 }
 
 export interface RefreshResponseData {

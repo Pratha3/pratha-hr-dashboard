@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { authController } from './auth.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import { tenantMiddleware } from '../../middleware/tenant.middleware';
 import { validateBody } from '../../middleware/validate.middleware';
 import { authRateLimiter } from '../../middleware/rateLimit.middleware';
 import {
   loginSchema,
+  registerSchema,
   changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema
@@ -13,6 +15,7 @@ import {
 export const authRouter = Router();
 
 // Public auth endpoints
+authRouter.post('/register', authRateLimiter, validateBody(registerSchema), authController.register);
 authRouter.post('/login', authRateLimiter, validateBody(loginSchema), authController.login);
 authRouter.post('/refresh', authController.refresh);
 authRouter.post('/logout', authController.logout);
@@ -28,9 +31,9 @@ authRouter.post(
   authController.resetPassword
 );
 
-// Protected auth endpoints (Requires valid JWT access token + live active user check)
-authRouter.get('/me', authMiddleware, authController.me);
-authRouter.patch('/profile', authMiddleware, authController.updateProfile);
+// Protected auth endpoints (Requires valid JWT access token + live active user check + tenant context)
+authRouter.get('/me', authMiddleware, tenantMiddleware, authController.me);
+authRouter.patch('/profile', authMiddleware, tenantMiddleware, authController.updateProfile);
 authRouter.post('/logout-all', authMiddleware, authController.logoutAll);
 authRouter.post(
   '/change-password',

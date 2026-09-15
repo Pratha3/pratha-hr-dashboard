@@ -3,11 +3,24 @@ import { AssetType, AssetStatus, Prisma } from '@prisma/client';
 import { AssetQueryInput } from '@ems/validation';
 
 export class AssetsRepository {
-  async findAssets(query: AssetQueryInput) {
-    const { page, limit, search, type, status, assignedToId, sortBy, sortOrder } = query;
-    const skip = (page - 1) * limit;
+  async findAssets(query: AssetQueryInput & { organizationId?: string }) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      type,
+      status,
+      assignedToId,
+      sortBy = 'createdAt',
+      sortOrder = 'desc',
+      organizationId
+    } = query;
+    const safePage = Math.max(1, Number(page) || 1);
+    const safeLimit = Math.max(1, Math.min(100, Number(limit) || 10));
+    const skip = (safePage - 1) * safeLimit;
 
     const where: Prisma.AssetWhereInput = {
+      ...(organizationId ? { organizationId } : {}),
       ...(type ? { type: type as AssetType } : {}),
       ...(status ? { status: status as AssetStatus } : {}),
       ...(assignedToId ? { assignedToId } : {}),
@@ -50,7 +63,7 @@ export class AssetsRepository {
           }
         },
         skip,
-        take: limit,
+        take: safeLimit,
         orderBy: { [sortBy || 'createdAt']: sortOrder || 'desc' }
       }),
       prisma.asset.count({ where })
@@ -59,15 +72,18 @@ export class AssetsRepository {
     return {
       assets,
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit)
     };
   }
 
-  async findById(id: string) {
-    return prisma.asset.findUnique({
-      where: { id },
+  async findById(id: string, organizationId?: string) {
+    return prisma.asset.findFirst({
+      where: {
+        id,
+        ...(organizationId ? { organizationId } : {})
+      },
       include: {
         assignedTo: {
           select: {
@@ -86,9 +102,12 @@ export class AssetsRepository {
     });
   }
 
-  async findBySerialNumber(serialNumber: string) {
-    return prisma.asset.findUnique({
-      where: { serialNumber }
+  async findBySerialNumber(serialNumber: string, organizationId?: string) {
+    return prisma.asset.findFirst({
+      where: {
+        serialNumber,
+        ...(organizationId ? { organizationId } : {})
+      }
     });
   }
 
@@ -99,6 +118,7 @@ export class AssetsRepository {
     status?: AssetStatus;
     assignedToId?: string | null;
     notes?: string | null;
+    organizationId?: string;
   }) {
     return prisma.asset.create({
       data: {
@@ -108,7 +128,8 @@ export class AssetsRepository {
         status: data.assignedToId ? 'ASSIGNED' : data.status ?? 'AVAILABLE',
         assignedToId: data.assignedToId ?? null,
         assignedDate: data.assignedToId ? new Date() : null,
-        notes: data.notes ?? null
+        notes: data.notes ?? null,
+        organizationId: data.organizationId || null
       },
       include: {
         assignedTo: {
@@ -167,9 +188,12 @@ export class AssetsRepository {
     });
   }
 
-  async findByUserId(userId: string) {
+  async findByUserId(userId: string, organizationId?: string) {
     return prisma.asset.findMany({
-      where: { assignedToId: userId },
+      where: {
+        assignedToId: userId,
+        ...(organizationId ? { organizationId } : {})
+      },
       orderBy: { assignedDate: 'desc' }
     });
   }

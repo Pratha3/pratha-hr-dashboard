@@ -8,6 +8,7 @@ import {
   Users,
   Building2,
   CalendarCheck,
+  CalendarRange,
   Megaphone,
   FolderKanban,
   Laptop,
@@ -37,6 +38,7 @@ import {
 } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { ProfileSettingsModal } from '@/components/modals/profile-settings-modal';
+import { OrganizationSwitcher } from './organization-switcher';
 import { cn } from '@/lib/utils';
 import { Permissions, PermissionName } from '@ems/shared-types';
 
@@ -82,6 +84,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Leaves & Time Off',
     href: '/leaves',
     icon: CalendarCheck,
+    permission: Permissions.LEAVE_READ
+  },
+  {
+    label: 'Availability Calendar',
+    href: '/calendar',
+    icon: CalendarRange,
     permission: Permissions.LEAVE_READ
   },
   {
@@ -207,6 +215,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               </div>
             </SheetHeader>
+
+            <div className="px-3 pt-3 pb-1 border-b">
+              <OrganizationSwitcher />
+            </div>
 
             {/* Mobile Nav Links */}
             <div className="flex-1 p-3 overflow-y-auto">
@@ -360,9 +372,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
             {/* Top Workspace status bar */}
             <div className="h-12 border-b bg-card/30 backdrop-blur-xs px-4 sm:px-6 flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-mono">
-                  Organization / <strong className="text-foreground capitalize">{pathname.split('/')[1] || 'Dashboard'}</strong>
+              <div className="flex items-center gap-3">
+                <OrganizationSwitcher />
+                <div className="h-4 w-px bg-border hidden sm:block" />
+                <span className="text-[11px] font-mono hidden sm:inline-block">
+                  <strong className="text-foreground capitalize">{pathname.split('/')[1] || 'Dashboard'}</strong>
                 </span>
               </div>
               <div className="flex items-center gap-3">

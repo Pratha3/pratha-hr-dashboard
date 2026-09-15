@@ -1,4 +1,4 @@
-# Pratha EMS - Enterprise HR Management System & Dashboard
+# Nexus HRMS - Enterprise HR Management System & Dashboard
 
 A modern, high-performance **Enterprise HR Management System (EMS)** and Workforce Dashboard built with a unified identity model, dynamic RBAC, leave management, and company announcements.
 
@@ -44,23 +44,22 @@ cp .env.example .env
 
 ### 3. Install Dependencies
 ```bash
-bun install
+pnpm install
 ```
 
 ### 4. Database Setup & Seeding
 ```bash
-bun x prisma generate
-bun x prisma db push
-bun x tsx prisma/seed.ts
+pnpm db:push
+pnpm db:seed
 ```
 
 ### 5. Run Development Servers
 ```bash
 # Run API (Port 5001)
-bun run dev:api
+pnpm dev:api
 
 # Run Web Dashboard (Port 3000)
-bun run dev:web
+pnpm dev:web
 ```
 
 ---
@@ -69,6 +68,6 @@ bun run dev:web
 
 | Role | Email | Password |
 | :--- | :--- | :--- |
-| **ADMIN** | `admin@pratha.com` | `Admin@123456` |
-| **HR** | `hr@pratha.com` | `Hr@123456` |
-| **EMPLOYEE** | `alex.morgan@pratha.com` | `Emp@123456` |
+| **ADMIN** | `admin@nexus.com` | `Admin@123456` |
+| **HR** | `hr@nexus.com` | `Hr@123456` |
+| **EMPLOYEE** | `alex.morgan@nexus.com` | `Emp@123456` |

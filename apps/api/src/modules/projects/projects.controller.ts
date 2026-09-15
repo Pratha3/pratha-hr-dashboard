@@ -10,9 +10,9 @@ import {
 export class ProjectsController {
   constructor(private service: ProjectsService = projectsService) {}
 
-  list = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.listProjects();
+      const data = await this.service.listProjects(req.organizationId);
       sendSuccess(res, data);
     } catch (err) {
       next(err);
@@ -21,7 +21,7 @@ export class ProjectsController {
 
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.getProjectById(req.params.id);
+      const data = await this.service.getProjectById(req.params.id, req.organizationId);
       sendSuccess(res, data);
     } catch (err) {
       next(err);
@@ -32,7 +32,8 @@ export class ProjectsController {
     try {
       const data = await this.service.createProject(
         req.body as CreateProjectInput,
-        req.user?.id
+        req.user?.id,
+        req.organizationId
       );
       sendSuccess(res, data, 201);
     } catch (err) {
@@ -45,7 +46,8 @@ export class ProjectsController {
       const data = await this.service.updateProject(
         req.params.id,
         req.body as UpdateProjectInput,
-        req.user?.id
+        req.user?.id,
+        req.organizationId
       );
       sendSuccess(res, data);
     } catch (err) {
@@ -55,7 +57,7 @@ export class ProjectsController {
 
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.deleteProject(req.params.id, req.user?.id);
+      const data = await this.service.deleteProject(req.params.id, req.user?.id, req.organizationId);
       sendSuccess(res, data);
     } catch (err) {
       next(err);
@@ -67,7 +69,8 @@ export class ProjectsController {
       const data = await this.service.assignMember(
         req.params.id,
         req.body as AssignProjectMemberInput,
-        req.user?.id
+        req.user?.id,
+        req.organizationId
       );
       sendSuccess(res, data);
     } catch (err) {
@@ -80,7 +83,8 @@ export class ProjectsController {
       const data = await this.service.removeMember(
         req.params.id,
         req.params.userId,
-        req.user?.id
+        req.user?.id,
+        req.organizationId
       );
       sendSuccess(res, data);
     } catch (err) {
@@ -90,7 +94,7 @@ export class ProjectsController {
 
   getByUserId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.getProjectsByUserId(req.params.userId);
+      const data = await this.service.getProjectsByUserId(req.params.userId, req.organizationId);
       sendSuccess(res, data);
     } catch (err) {
       next(err);

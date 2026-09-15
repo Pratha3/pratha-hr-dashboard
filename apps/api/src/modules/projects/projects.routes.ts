@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { projectsController } from './projects.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import { tenantMiddleware } from '../../middleware/tenant.middleware';
 import { requirePermission } from '../../middleware/authorization.middleware';
 import { validateBody } from '../../middleware/validate.middleware';
 import {
@@ -13,6 +14,7 @@ import { Permissions } from '@ems/shared-types';
 export const projectsRouter = Router();
 
 projectsRouter.use(authMiddleware);
+projectsRouter.use(tenantMiddleware);
 
 projectsRouter.get(
   '/',

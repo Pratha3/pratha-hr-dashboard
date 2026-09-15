@@ -14,20 +14,20 @@ import { prisma } from '../../config/database';
 export class ProjectsService {
   constructor(private repo: ProjectsRepository = projectsRepository) {}
 
-  async listProjects() {
-    return this.repo.findAll();
+  async listProjects(organizationId?: string) {
+    return this.repo.findAll(organizationId);
   }
 
-  async getProjectById(id: string) {
-    const project = await this.repo.findById(id);
+  async getProjectById(id: string, organizationId?: string) {
+    const project = await this.repo.findById(id, organizationId);
     if (!project) {
       throw new NotFoundError('Project record not found');
     }
     return project;
   }
 
-  async createProject(input: CreateProjectInput, actorId?: string) {
-    const existing = await this.repo.findByName(input.name.trim());
+  async createProject(input: CreateProjectInput, actorId?: string, organizationId?: string) {
+    const existing = await this.repo.findByName(input.name.trim(), organizationId);
     if (existing) {
       throw new ConflictError('A project with this name already exists');
     }
@@ -45,30 +45,32 @@ export class ProjectsService {
       description: input.description?.trim() || null,
       status: input.status,
       startDate,
-      endDate
+      endDate,
+      organizationId
     });
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: 'PROJECT_CREATED',
         entity: 'Project',
         entityId: project.id,
-        metadata: { name: project.name, clientName: project.clientName }
+        metadata: { name: project.name, clientName: project.clientName, organizationId }
       }
     });
 
     return project;
   }
 
-  async updateProject(id: string, input: UpdateProjectInput, actorId?: string) {
-    const project = await this.repo.findById(id);
+  async updateProject(id: string, input: UpdateProjectInput, actorId?: string, organizationId?: string) {
+    const project = await this.repo.findById(id, organizationId);
     if (!project) {
       throw new NotFoundError('Project record not found');
     }
 
     if (input.name && input.name.trim().toLowerCase() !== project.name.toLowerCase()) {
-      const duplicate = await this.repo.findByName(input.name.trim());
+      const duplicate = await this.repo.findByName(input.name.trim(), organizationId);
       if (duplicate) {
         throw new ConflictError('A project with this name already exists');
       }
@@ -92,19 +94,20 @@ export class ProjectsService {
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: 'PROJECT_UPDATED',
         entity: 'Project',
         entityId: id,
-        metadata: input as any
+        metadata: { ...input, organizationId } as any
       }
     });
 
     return updated;
   }
 
-  async deleteProject(id: string, actorId?: string) {
-    const project = await this.repo.findById(id);
+  async deleteProject(id: string, actorId?: string, organizationId?: string) {
+    const project = await this.repo.findById(id, organizationId);
     if (!project) {
       throw new NotFoundError('Project record not found');
     }
@@ -113,26 +116,38 @@ export class ProjectsService {
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: 'PROJECT_DELETED',
         entity: 'Project',
         entityId: id,
-        metadata: { name: project.name }
+        metadata: { name: project.name, organizationId }
       }
     });
 
     return { message: 'Project deleted successfully' };
   }
 
-  async assignMember(projectId: string, input: AssignProjectMemberInput, actorId?: string) {
-    const project = await this.repo.findById(projectId);
+  async assignMember(projectId: string, input: AssignProjectMemberInput, actorId?: string, organizationId?: string) {
+    const project = await this.repo.findById(projectId, organizationId);
     if (!project) {
       throw new NotFoundError('Project record not found');
     }
 
-    const user = await prisma.user.findUnique({ where: { id: input.userId } });
+    const user = await prisma.user.findFirst({
+      where: {
+        id: input.userId,
+        ...(organizationId
+          ? {
+              memberships: {
+                some: { organizationId, isActive: true }
+              }
+            }
+          : { isActive: true })
+      }
+    });
     if (!user || !user.isActive) {
-      throw new NotFoundError('Active employee not found');
+      throw new NotFoundError('Active employee not found in this organization');
     }
 
     const member = await this.repo.addOrUpdateMember({
@@ -144,6 +159,7 @@ export class ProjectsService {
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: 'PROJECT_MEMBER_ASSIGNED',
         entity: 'ProjectMember',
@@ -153,7 +169,8 @@ export class ProjectsService {
           projectName: project.name,
           userId: input.userId,
           role: input.role,
-          allocation: input.allocation
+          allocation: input.allocation,
+          organizationId
         }
       }
     });
@@ -161,8 +178,8 @@ export class ProjectsService {
     return member;
   }
 
-  async removeMember(projectId: string, userId: string, actorId?: string) {
-    const project = await this.repo.findById(projectId);
+  async removeMember(projectId: string, userId: string, actorId?: string, organizationId?: string) {
+    const project = await this.repo.findById(projectId, organizationId);
     if (!project) {
       throw new NotFoundError('Project record not found');
     }
@@ -171,19 +188,20 @@ export class ProjectsService {
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: 'PROJECT_MEMBER_REMOVED',
         entity: 'ProjectMember',
         entityId: `${projectId}_${userId}`,
-        metadata: { projectId, userId }
+        metadata: { projectId, userId, organizationId }
       }
     });
 
     return { message: 'Employee removed from project successfully' };
   }
 
-  async getProjectsByUserId(userId: string) {
-    return this.repo.findByUserId(userId);
+  async getProjectsByUserId(userId: string, organizationId?: string) {
+    return this.repo.findByUserId(userId, organizationId);
   }
 }
 

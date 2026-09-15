@@ -27,6 +27,7 @@ function ResetPasswordContent() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors }
   } = useForm<ResetPasswordInput>({
     resolver: zodResolver(resetPasswordSchema),
@@ -36,6 +37,12 @@ function ResetPasswordContent() {
       confirmPassword: ''
     }
   });
+
+  React.useEffect(() => {
+    if (tokenFromUrl) {
+      setValue('token', tokenFromUrl);
+    }
+  }, [tokenFromUrl, setValue]);
 
   const onSubmit = async (data: ResetPasswordInput) => {
     setIsSubmitting(true);

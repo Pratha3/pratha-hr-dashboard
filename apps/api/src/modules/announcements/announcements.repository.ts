@@ -1,8 +1,9 @@
 import { prisma } from '../../config/database';
 
 export class AnnouncementsRepository {
-  async findAll() {
+  async findAll(organizationId?: string) {
     return prisma.announcement.findMany({
+      where: organizationId ? { organizationId } : {},
       include: {
         author: {
           select: {
@@ -19,9 +20,14 @@ export class AnnouncementsRepository {
     });
   }
 
-  async create(data: { title: string; content: string; authorId: string }) {
+  async create(data: { title: string; content: string; authorId: string; organizationId?: string }) {
     return prisma.announcement.create({
-      data,
+      data: {
+        title: data.title,
+        content: data.content,
+        authorId: data.authorId,
+        organizationId: data.organizationId || null
+      },
       include: {
         author: {
           select: {

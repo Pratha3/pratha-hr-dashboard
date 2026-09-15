@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import { dashboardController } from './dashboard.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import { tenantMiddleware } from '../../middleware/tenant.middleware';
 import { requirePermission } from '../../middleware/authorization.middleware';
 import { Permissions } from '@ems/shared-types';
 
 export const dashboardRouter = Router();
 
 dashboardRouter.use(authMiddleware);
+dashboardRouter.use(tenantMiddleware);
 
 dashboardRouter.get(
   '/stats',

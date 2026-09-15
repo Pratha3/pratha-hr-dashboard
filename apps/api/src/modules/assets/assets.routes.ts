@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { assetsController } from './assets.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import { tenantMiddleware } from '../../middleware/tenant.middleware';
 import { requirePermission } from '../../middleware/authorization.middleware';
 import { validateBody, validateQuery } from '../../middleware/validate.middleware';
 import {
@@ -14,6 +15,7 @@ import { Permissions } from '@ems/shared-types';
 export const assetsRouter = Router();
 
 assetsRouter.use(authMiddleware);
+assetsRouter.use(tenantMiddleware);
 
 assetsRouter.get(
   '/',

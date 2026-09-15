@@ -7,7 +7,7 @@ export class AuditController {
 
   list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const result = await this.service.listLogs(req.query as any);
+      const result = await this.service.listLogs(req.query as any, req.organizationId);
       sendSuccess(res, result.logs, 200, result.meta);
     } catch (err) {
       next(err);

@@ -5,30 +5,36 @@ import { prisma } from '../../config/database';
 export class DepartmentsService {
   constructor(private repo: DepartmentsRepository = departmentsRepository) {}
 
-  async listDepartments() {
-    return this.repo.findAll();
+  async listDepartments(organizationId?: string) {
+    return this.repo.findAll(organizationId);
   }
 
-  async getDepartment(id: string) {
-    const dept = await this.repo.findById(id);
+  async getDepartment(id: string, organizationId?: string) {
+    const dept = await this.repo.findById(id, organizationId);
     if (!dept) throw new NotFoundError('Department not found');
     return dept;
   }
 
-  async createDepartment(data: { name: string; description?: string | null }, actorId?: string) {
+  async createDepartment(
+    data: { name: string; description?: string | null },
+    actorId?: string,
+    organizationId?: string
+  ) {
     try {
       const dept = await this.repo.create({
         name: data.name.trim(),
-        description: data.description ? data.description.trim() : null
+        description: data.description ? data.description.trim() : null,
+        organizationId
       });
 
       await prisma.auditLog.create({
         data: {
+          organizationId: organizationId || null,
           userId: actorId || null,
           action: 'DEPARTMENT_CREATED',
           entity: 'Department',
           entityId: dept.id,
-          metadata: { name: dept.name }
+          metadata: { name: dept.name, organizationId }
         }
       });
 
@@ -44,9 +50,10 @@ export class DepartmentsService {
   async updateDepartment(
     id: string,
     data: { name?: string; description?: string | null; isActive?: boolean },
-    actorId?: string
+    actorId?: string,
+    organizationId?: string
   ) {
-    await this.getDepartment(id);
+    await this.getDepartment(id, organizationId);
 
     try {
       const updated = await this.repo.update(id, {
@@ -62,11 +69,12 @@ export class DepartmentsService {
 
       await prisma.auditLog.create({
         data: {
+          organizationId: organizationId || null,
           userId: actorId || null,
           action,
           entity: 'Department',
           entityId: id,
-          metadata: data as any
+          metadata: { ...data, organizationId } as any
         }
       });
 

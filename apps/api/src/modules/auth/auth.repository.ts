@@ -20,6 +20,21 @@ export class AuthRepository {
               }
             }
           }
+        },
+        memberships: {
+          where: { isActive: true, organization: { isActive: true } },
+          include: {
+            organization: true,
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true
+                  }
+                }
+              }
+            }
+          }
         }
       }
     });
@@ -40,6 +55,21 @@ export class AuthRepository {
             rolePermissions: {
               include: {
                 permission: true
+              }
+            }
+          }
+        },
+        memberships: {
+          where: { isActive: true, organization: { isActive: true } },
+          include: {
+            organization: true,
+            role: {
+              include: {
+                rolePermissions: {
+                  include: {
+                    permission: true
+                  }
+                }
               }
             }
           }

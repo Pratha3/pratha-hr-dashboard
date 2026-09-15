@@ -8,11 +8,15 @@ import { auditRouter } from '../modules/audit/audit.routes';
 import { dashboardRouter } from '../modules/dashboard/dashboard.routes';
 import { projectsRouter } from '../modules/projects/projects.routes';
 import { assetsRouter } from '../modules/assets/assets.routes';
+import { organizationsRouter } from '../modules/organizations/organizations.routes';
+import { invitationsRouter } from '../modules/invitations/invitations.routes';
 
 export const apiRouter = Router();
 
 // Mount all v1 sub-routers
 apiRouter.use('/auth', authRouter);
+apiRouter.use('/organizations', organizationsRouter);
+apiRouter.use('/invitations', invitationsRouter);
 apiRouter.use('/users', usersRouter);
 apiRouter.use('/departments', departmentsRouter);
 apiRouter.use('/leaves', leavesRouter);
@@ -21,5 +25,6 @@ apiRouter.use('/audit-logs', auditRouter);
 apiRouter.use('/dashboard', dashboardRouter);
 apiRouter.use('/projects', projectsRouter);
 apiRouter.use('/assets', assetsRouter);
+
 
 

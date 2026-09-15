@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { announcementsController } from './announcements.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import { tenantMiddleware } from '../../middleware/tenant.middleware';
 import { requirePermission } from '../../middleware/authorization.middleware';
 import { validateBody } from '../../middleware/validate.middleware';
 import { createAnnouncementSchema } from '@ems/validation';
@@ -9,6 +10,7 @@ import { Permissions } from '@ems/shared-types';
 export const announcementsRouter = Router();
 
 announcementsRouter.use(authMiddleware);
+announcementsRouter.use(tenantMiddleware);
 
 announcementsRouter.get(
   '/',

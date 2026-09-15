@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { usersController } from './users.controller';
 import { authMiddleware } from '../../middleware/auth.middleware';
+import { tenantMiddleware } from '../../middleware/tenant.middleware';
 import { requirePermission } from '../../middleware/authorization.middleware';
 import { validateBody, validateQuery } from '../../middleware/validate.middleware';
 import {
@@ -14,8 +15,9 @@ import { Permissions } from '@ems/shared-types';
 
 export const usersRouter = Router();
 
-// All user routes require authentication
+// All user routes require authentication and tenant context
 usersRouter.use(authMiddleware);
+usersRouter.use(tenantMiddleware);
 
 usersRouter.get(
   '/',

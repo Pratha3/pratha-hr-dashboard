@@ -5,9 +5,9 @@ import { sendSuccess } from '../../common/utils/response';
 export class AnnouncementsController {
   constructor(private service: AnnouncementsService = announcementsService) {}
 
-  list = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const announcements = await this.service.listAnnouncements();
+      const announcements = await this.service.listAnnouncements(req.organizationId);
       sendSuccess(res, announcements);
     } catch (err) {
       next(err);
@@ -17,11 +17,14 @@ export class AnnouncementsController {
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { title, content } = req.body;
-      const announcement = await this.service.createAnnouncement({
-        title,
-        content,
-        authorId: req.user!.id
-      });
+      const announcement = await this.service.createAnnouncement(
+        {
+          title,
+          content,
+          authorId: req.user!.id
+        },
+        req.organizationId
+      );
       sendSuccess(res, announcement, 201);
     } catch (err) {
       next(err);
@@ -30,7 +33,7 @@ export class AnnouncementsController {
 
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await this.service.deleteAnnouncement(req.params.id, req.user!.id);
+      await this.service.deleteAnnouncement(req.params.id, req.user!.id, req.organizationId);
       sendSuccess(res, { deleted: true });
     } catch (err) {
       next(err);

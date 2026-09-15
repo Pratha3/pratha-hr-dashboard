@@ -14,6 +14,7 @@ export const apiClient = axios.create({
 });
 
 let accessToken: string | null = null;
+let activeOrganizationId: string | null = null;
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
@@ -23,6 +24,27 @@ export function getAccessToken(): string | null {
   return accessToken;
 }
 
+export function setActiveOrganizationId(orgId: string | null) {
+  activeOrganizationId = orgId;
+  if (typeof window !== 'undefined') {
+    if (orgId) {
+      localStorage.setItem('nexus_active_org_id', orgId);
+    } else {
+      localStorage.removeItem('nexus_active_org_id');
+      localStorage.removeItem('pratha_active_org_id');
+    }
+  }
+}
+
+export function getActiveOrganizationId(): string | null {
+  if (!activeOrganizationId && typeof window !== 'undefined') {
+    activeOrganizationId =
+      localStorage.getItem('nexus_active_org_id') ||
+      localStorage.getItem('pratha_active_org_id');
+  }
+  return activeOrganizationId;
+}
+
 // Function to read cookie in browser
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;
@@ -30,12 +52,18 @@ function getCookie(name: string): string | null {
   return match ? decodeURIComponent(match[2]) : null;
 }
 
-// Request Interceptor: Attach Access Token & CSRF Token
+// Request Interceptor: Attach Access Token, Organization ID & CSRF Token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Attach Access Token if available
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    // Attach Organization ID if active
+    const orgId = getActiveOrganizationId();
+    if (orgId) {
+      config.headers['x-organization-id'] = orgId;
     }
 
     // Attach CSRF Token on mutating requests
@@ -120,9 +148,13 @@ apiClient.interceptors.response.use(
         processQueue(refreshErr as AxiosError);
         setAccessToken(null);
         if (typeof window !== 'undefined') {
-          const isPublicAuthPage = ['/login', '/forgot-password', '/reset-password'].some(
-            (route) => window.location.pathname.startsWith(route)
-          );
+          const isPublicAuthPage = [
+            '/login',
+            '/register',
+            '/invite',
+            '/forgot-password',
+            '/reset-password'
+          ].some((route) => window.location.pathname.startsWith(route));
           if (!isPublicAuthPage) {
             window.location.href = '/login';
           }

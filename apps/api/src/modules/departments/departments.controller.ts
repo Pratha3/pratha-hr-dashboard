@@ -5,9 +5,9 @@ import { sendSuccess } from '../../common/utils/response';
 export class DepartmentsController {
   constructor(private service: DepartmentsService = departmentsService) {}
 
-  list = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const departments = await this.service.listDepartments();
+      const departments = await this.service.listDepartments(req.organizationId);
       sendSuccess(res, departments);
     } catch (err) {
       next(err);
@@ -16,7 +16,7 @@ export class DepartmentsController {
 
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const department = await this.service.getDepartment(req.params.id);
+      const department = await this.service.getDepartment(req.params.id, req.organizationId);
       sendSuccess(res, department);
     } catch (err) {
       next(err);
@@ -25,7 +25,11 @@ export class DepartmentsController {
 
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const department = await this.service.createDepartment(req.body, req.user?.id);
+      const department = await this.service.createDepartment(
+        req.body,
+        req.user?.id,
+        req.organizationId
+      );
       sendSuccess(res, department, 201);
     } catch (err) {
       next(err);
@@ -34,7 +38,12 @@ export class DepartmentsController {
 
   update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const department = await this.service.updateDepartment(req.params.id, req.body, req.user?.id);
+      const department = await this.service.updateDepartment(
+        req.params.id,
+        req.body,
+        req.user?.id,
+        req.organizationId
+      );
       sendSuccess(res, department);
     } catch (err) {
       next(err);

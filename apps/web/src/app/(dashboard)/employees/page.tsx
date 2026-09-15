@@ -679,7 +679,7 @@ function AddMemberModal({
           </div>
 
           <FormField label="Work Email" error={errors.email?.message} required>
-            <Input {...register('email')} type="email" placeholder="jane.doe@pratha.com" />
+            <Input {...register('email')} type="email" placeholder="jane.doe@company.com" />
           </FormField>
 
           <FormField label="Initial Password" error={errors.password?.message} required>

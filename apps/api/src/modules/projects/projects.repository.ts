@@ -2,8 +2,9 @@ import { prisma } from '../../config/database';
 import { ProjectStatus } from '@prisma/client';
 
 export class ProjectsRepository {
-  async findAll() {
+  async findAll(organizationId?: string) {
     return prisma.project.findMany({
+      where: organizationId ? { organizationId } : {},
       include: {
         members: {
           include: {
@@ -32,9 +33,12 @@ export class ProjectsRepository {
     });
   }
 
-  async findById(id: string) {
-    return prisma.project.findUnique({
-      where: { id },
+  async findById(id: string, organizationId?: string) {
+    return prisma.project.findFirst({
+      where: {
+        id,
+        ...(organizationId ? { organizationId } : {})
+      },
       include: {
         members: {
           include: {
@@ -62,9 +66,12 @@ export class ProjectsRepository {
     });
   }
 
-  async findByName(name: string) {
+  async findByName(name: string, organizationId?: string) {
     return prisma.project.findFirst({
-      where: { name: { equals: name, mode: 'insensitive' } }
+      where: {
+        name: { equals: name, mode: 'insensitive' },
+        ...(organizationId ? { organizationId } : {})
+      }
     });
   }
 
@@ -75,6 +82,7 @@ export class ProjectsRepository {
     status?: ProjectStatus;
     startDate?: Date | null;
     endDate?: Date | null;
+    organizationId?: string;
   }) {
     return prisma.project.create({
       data: {
@@ -83,7 +91,8 @@ export class ProjectsRepository {
         description: data.description ?? null,
         status: data.status ?? 'ACTIVE',
         startDate: data.startDate ?? null,
-        endDate: data.endDate ?? null
+        endDate: data.endDate ?? null,
+        organizationId: data.organizationId || null
       },
       include: {
         members: {
@@ -204,9 +213,12 @@ export class ProjectsRepository {
     });
   }
 
-  async findByUserId(userId: string) {
+  async findByUserId(userId: string, organizationId?: string) {
     return prisma.projectMember.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(organizationId ? { project: { organizationId } } : {})
+      },
       include: {
         project: true
       },

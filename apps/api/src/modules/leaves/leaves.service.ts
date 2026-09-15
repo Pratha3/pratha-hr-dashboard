@@ -7,30 +7,43 @@ import { prisma } from '../../config/database';
 export class LeavesService {
   constructor(private repo: LeavesRepository = leavesRepository) {}
 
-  async listTypes() {
-    return this.repo.findTypes();
+  async listTypes(organizationId?: string) {
+    return this.repo.findTypes(organizationId);
   }
 
-  async listLeaves(userId: string, permissions: PermissionName[]) {
+  async listLeaves(userId: string, permissions: PermissionName[], organizationId?: string) {
     const canManage = permissions.includes(Permissions.LEAVE_MANAGE);
-    return this.repo.findLeaves(userId, canManage);
+    return this.repo.findLeaves(userId, canManage, organizationId);
   }
 
-  async applyLeave(data: {
-    userId: string;
-    leaveTypeId: string;
-    startDate: string;
-    endDate: string;
-    reason: string;
-  }) {
+  async applyLeave(
+    data: {
+      userId: string;
+      leaveTypeId: string;
+      startDate: string;
+      endDate: string;
+      reason: string;
+    },
+    organizationId?: string
+  ) {
     const start = new Date(data.startDate);
     const end = new Date(data.endDate);
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) {
       throw new ValidationError('End date cannot be before start date');
     }
 
-    const leaveType = await prisma.leaveType.findUnique({
-      where: { id: data.leaveTypeId }
+    const leaveType = await prisma.leaveType.findFirst({
+      where: {
+        id: data.leaveTypeId,
+        ...(organizationId
+          ? {
+              OR: [
+                { organizationId },
+                { organizationId: null }
+              ]
+            }
+          : {})
+      }
     });
     if (!leaveType) {
       throw new NotFoundError('Leave type not found');
@@ -41,11 +54,13 @@ export class LeavesService {
       leaveTypeId: data.leaveTypeId,
       startDate: start,
       endDate: end,
-      reason: data.reason.trim()
+      reason: data.reason.trim(),
+      organizationId
     });
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: data.userId,
         action: 'LEAVE_APPLIED',
         entity: 'LeaveRequest',
@@ -53,7 +68,8 @@ export class LeavesService {
         metadata: {
           leaveTypeId: data.leaveTypeId,
           startDate: data.startDate,
-          endDate: data.endDate
+          endDate: data.endDate,
+          organizationId
         }
       }
     });
@@ -65,10 +81,14 @@ export class LeavesService {
     id: string,
     status: LeaveStatus,
     actionById: string,
-    actionNote?: string
+    actionNote?: string,
+    organizationId?: string
   ) {
-    const existing = await prisma.leaveRequest.findUnique({
-      where: { id }
+    const existing = await prisma.leaveRequest.findFirst({
+      where: {
+        id,
+        ...(organizationId ? { organizationId } : {})
+      }
     });
 
     if (!existing) {
@@ -83,6 +103,7 @@ export class LeavesService {
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actionById,
         action: `LEAVE_${status}`,
         entity: 'LeaveRequest',
@@ -90,7 +111,8 @@ export class LeavesService {
         metadata: {
           previousStatus: existing.status,
           newStatus: status,
-          actionNote: actionNote?.trim() || null
+          actionNote: actionNote?.trim() || null,
+          organizationId
         }
       }
     });

@@ -39,7 +39,7 @@ export function createApp(): Express {
         ) {
           callback(null, true);
         } else {
-          callback(null, true);
+          callback(new Error('Blocked by CORS policy'));
         }
       },
       credentials: true,
@@ -49,9 +49,10 @@ export function createApp(): Express {
         'Authorization',
         'X-Request-Id',
         'x-csrf-token',
-        'x-xsrf-token'
+        'x-xsrf-token',
+        'x-organization-id'
       ],
-      exposedHeaders: ['X-Request-Id', 'x-csrf-token']
+      exposedHeaders: ['X-Request-Id', 'x-csrf-token', 'x-organization-id']
     })
   );
 

@@ -2,15 +2,26 @@ import { prisma } from '../../config/database';
 import { LeaveStatus } from '@prisma/client';
 
 export class LeavesRepository {
-  async findTypes() {
+  async findTypes(organizationId?: string) {
     return prisma.leaveType.findMany({
+      where: organizationId
+        ? {
+            OR: [
+              { organizationId },
+              { organizationId: null }
+            ]
+          }
+        : undefined,
       orderBy: { name: 'asc' }
     });
   }
 
-  async findLeaves(userId?: string, canManage: boolean = false) {
+  async findLeaves(userId?: string, canManage: boolean = false, organizationId?: string) {
     return prisma.leaveRequest.findMany({
-      where: canManage ? {} : { userId },
+      where: {
+        ...(organizationId ? { organizationId } : {}),
+        ...(canManage ? {} : { userId })
+      },
       include: {
         user: {
           select: {
@@ -42,10 +53,16 @@ export class LeavesRepository {
     startDate: Date;
     endDate: Date;
     reason: string;
+    organizationId?: string;
   }) {
     return prisma.leaveRequest.create({
       data: {
-        ...data,
+        userId: data.userId,
+        leaveTypeId: data.leaveTypeId,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        reason: data.reason,
+        organizationId: data.organizationId || null,
         status: LeaveStatus.PENDING
       },
       include: {

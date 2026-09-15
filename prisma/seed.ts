@@ -7,6 +7,13 @@ const PERMISSIONS = [
   // Auth
   { name: 'AUTH_LOGIN', description: 'Log into the system', module: 'AUTH' },
 
+  // Organization & Tenancy
+  { name: 'ORG_READ', description: 'View organization details and members', module: 'ORGANIZATION' },
+  { name: 'ORG_UPDATE', description: 'Update organization settings and profile', module: 'ORGANIZATION' },
+  { name: 'ORG_MANAGE', description: 'Manage organization lifecycle and billing', module: 'ORGANIZATION' },
+  { name: 'MEMBER_INVITE', description: 'Invite new members to the organization', module: 'ORGANIZATION' },
+  { name: 'MEMBER_MANAGE', description: 'Manage member roles and status', module: 'ORGANIZATION' },
+
   // User & Workforce Management
   { name: 'USER_READ', description: 'View user and employee accounts', module: 'USER' },
   { name: 'USER_READ_SALARY', description: 'View user salary field', module: 'USER' },
@@ -51,6 +58,8 @@ const PERMISSIONS = [
 
 const HR_PERMISSIONS = [
   'AUTH_LOGIN',
+  'ORG_READ',
+  'MEMBER_INVITE',
   'USER_READ',
   'USER_READ_SALARY',
   'USER_CREATE',
@@ -73,6 +82,7 @@ const HR_PERMISSIONS = [
 
 const EMPLOYEE_PERMISSIONS = [
   'AUTH_LOGIN',
+  'ORG_READ',
   'USER_READ',
   'DEPARTMENT_READ',
   'LEAVE_READ',
@@ -86,7 +96,24 @@ const EMPLOYEE_PERMISSIONS = [
 async function main() {
   console.log('🌱 Starting database seeding...');
 
-  // 1. Seed Permissions
+  // 1. Seed Default Organization
+  console.log('🏢 Seeding default organization...');
+  const defaultOrg = await prisma.organization.upsert({
+    where: { slug: 'nexus-tech' },
+    update: {
+      name: 'Nexus Technologies',
+      domain: 'nexus.com',
+      isActive: true
+    },
+    create: {
+      name: 'Nexus Technologies',
+      slug: 'nexus-tech',
+      domain: 'nexus.com',
+      isActive: true
+    }
+  });
+
+  // 2. Seed Permissions
   console.log('📦 Seeding permissions...');
   const permissionMap = new Map<string, string>();
   for (const perm of PERMISSIONS) {
@@ -98,12 +125,34 @@ async function main() {
     permissionMap.set(record.name, record.id);
   }
 
-  // 2. Seed Roles
+  // 3. Seed Roles
   console.log('👑 Seeding roles...');
+  const ownerRole = await prisma.role.upsert({
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'OWNER'
+      }
+    },
+    update: { description: 'Organization Owner with absolute control', isSystem: true },
+    create: {
+      organizationId: defaultOrg.id,
+      name: 'OWNER',
+      description: 'Organization Owner with absolute control',
+      isSystem: true
+    }
+  });
+
   const adminRole = await prisma.role.upsert({
-    where: { name: 'ADMIN' },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'ADMIN'
+      }
+    },
     update: { description: 'System Administrator with full permissions', isSystem: true },
     create: {
+      organizationId: defaultOrg.id,
       name: 'ADMIN',
       description: 'System Administrator with full permissions',
       isSystem: true
@@ -111,37 +160,53 @@ async function main() {
   });
 
   const hrRole = await prisma.role.upsert({
-    where: { name: 'HR' },
-    update: { description: 'HR Manager with employee, leave, and department access', isSystem: true },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'HR'
+      }
+    },
+    update: { description: 'HR Manager with workforce, leave, and department access', isSystem: true },
     create: {
+      organizationId: defaultOrg.id,
       name: 'HR',
-      description: 'HR Manager with employee, leave, and department access',
+      description: 'HR Manager with workforce, leave, and department access',
       isSystem: true
     }
   });
 
   const employeeRole = await prisma.role.upsert({
-    where: { name: 'EMPLOYEE' },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'EMPLOYEE'
+      }
+    },
     update: { description: 'Standard employee with self-service leave and directory access', isSystem: true },
     create: {
+      organizationId: defaultOrg.id,
       name: 'EMPLOYEE',
       description: 'Standard employee with self-service leave and directory access',
       isSystem: true
     }
   });
 
-  // 3. Assign Permissions to Roles
+  // 4. Assign Permissions to Roles
   console.log('🔗 Mapping permissions to roles...');
   await prisma.rolePermission.deleteMany({
-    where: { roleId: { in: [adminRole.id, hrRole.id, employeeRole.id] } }
+    where: { roleId: { in: [ownerRole.id, adminRole.id, hrRole.id, employeeRole.id] } }
   });
 
-  // Admin gets ALL permissions
-  const adminMappings = Array.from(permissionMap.values()).map((permissionId) => ({
+  // Owner & Admin get ALL permissions
+  const allPermMappings = Array.from(permissionMap.values()).map((permissionId) => ({
     roleId: adminRole.id,
     permissionId
   }));
-  await prisma.rolePermission.createMany({ data: adminMappings });
+  const ownerMappings = Array.from(permissionMap.values()).map((permissionId) => ({
+    roleId: ownerRole.id,
+    permissionId
+  }));
+  await prisma.rolePermission.createMany({ data: [...allPermMappings, ...ownerMappings] });
 
   // HR gets HR subset
   const hrMappings = HR_PERMISSIONS.map((permName) => ({
@@ -157,12 +222,18 @@ async function main() {
   })).filter((m) => Boolean(m.permissionId));
   await prisma.rolePermission.createMany({ data: employeeMappings });
 
-  // 4. Seed Departments
+  // 5. Seed Departments
   console.log('🏢 Seeding departments...');
   const engineeringDept = await prisma.department.upsert({
-    where: { name: 'Engineering' },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'Engineering'
+      }
+    },
     update: { isActive: true },
     create: {
+      organizationId: defaultOrg.id,
       name: 'Engineering',
       description: 'Software development, infrastructure, and technical operations',
       isActive: true
@@ -170,9 +241,15 @@ async function main() {
   });
 
   const hrDept = await prisma.department.upsert({
-    where: { name: 'Human Resources' },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'Human Resources'
+      }
+    },
     update: { isActive: true },
     create: {
+      organizationId: defaultOrg.id,
       name: 'Human Resources',
       description: 'People operations, recruiting, and employee relations',
       isActive: true
@@ -180,48 +257,84 @@ async function main() {
   });
 
   const designDept = await prisma.department.upsert({
-    where: { name: 'Product & Design' },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'Product & Design'
+      }
+    },
     update: { isActive: true },
     create: {
+      organizationId: defaultOrg.id,
       name: 'Product & Design',
       description: 'UI/UX design, user research, and product strategy',
       isActive: true
     }
   });
 
-  // 5. Seed Leave Types
+  // 6. Seed Leave Types
   console.log('🏖️ Seeding leave types...');
   const casualLeave = await prisma.leaveType.upsert({
-    where: { name: 'Casual Leave' },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'Casual Leave'
+      }
+    },
     update: { daysAllowed: 12 },
-    create: { name: 'Casual Leave', daysAllowed: 12 }
+    create: {
+      organizationId: defaultOrg.id,
+      name: 'Casual Leave',
+      daysAllowed: 12
+    }
   });
 
   const sickLeave = await prisma.leaveType.upsert({
-    where: { name: 'Sick Leave' },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'Sick Leave'
+      }
+    },
     update: { daysAllowed: 10 },
-    create: { name: 'Sick Leave', daysAllowed: 10 }
+    create: {
+      organizationId: defaultOrg.id,
+      name: 'Sick Leave',
+      daysAllowed: 10
+    }
   });
 
   await prisma.leaveType.upsert({
-    where: { name: 'Paid Time Off (PTO)' },
+    where: {
+      organizationId_name: {
+        organizationId: defaultOrg.id,
+        name: 'Paid Time Off (PTO)'
+      }
+    },
     update: { daysAllowed: 15 },
-    create: { name: 'Paid Time Off (PTO)', daysAllowed: 15 }
+    create: {
+      organizationId: defaultOrg.id,
+      name: 'Paid Time Off (PTO)',
+      daysAllowed: 15
+    }
   });
 
-  // 6. Seed Demo Users
-  console.log('👤 Seeding default users...');
+  // 7. Seed Demo Users & Memberships
+  console.log('👤 Seeding default users & memberships...');
   const adminPasswordHash = await argon2.hash('Admin@123456');
   const hrPasswordHash = await argon2.hash('Hr@123456');
   const employeePasswordHash = await argon2.hash('Emp@123456');
 
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@pratha.com' },
+    where: { email: 'admin@nexus.com' },
     update: {
+      passwordHash: adminPasswordHash,
       roleId: adminRole.id,
       departmentId: engineeringDept.id,
       position: 'Chief Technology Officer',
       employeeCode: 'EMP-001',
+      failedLoginAttempts: 0,
+      lockedUntil: null,
       isActive: true,
       isEmailVerified: true
     },
@@ -229,7 +342,7 @@ async function main() {
       employeeCode: 'EMP-001',
       firstName: 'System',
       lastName: 'Administrator',
-      email: 'admin@pratha.com',
+      email: 'admin@nexus.com',
       passwordHash: adminPasswordHash,
       phone: '+1-555-0100',
       position: 'Chief Technology Officer',
@@ -242,13 +355,53 @@ async function main() {
     }
   });
 
-  const hrUser = await prisma.user.upsert({
-    where: { email: 'hr@pratha.com' },
+  // Set defaultOrg creator
+  await prisma.organization.update({
+    where: { id: defaultOrg.id },
+    data: { createdById: adminUser.id }
+  });
+
+  // Admin Membership
+  await prisma.organizationMembership.upsert({
+    where: {
+      organizationId_userId: {
+        organizationId: defaultOrg.id,
+        userId: adminUser.id
+      }
+    },
     update: {
+      roleId: adminRole.id,
+      departmentId: engineeringDept.id,
+      position: 'Chief Technology Officer',
+      employeeCode: 'EMP-001',
+      salary: 150000,
+      status: 'ACTIVE',
+      isActive: true
+    },
+    create: {
+      organizationId: defaultOrg.id,
+      userId: adminUser.id,
+      roleId: adminRole.id,
+      departmentId: engineeringDept.id,
+      position: 'Chief Technology Officer',
+      employeeCode: 'EMP-001',
+      salary: 150000,
+      status: 'ACTIVE',
+      isActive: true,
+      joiningDate: new Date('2024-01-01')
+    }
+  });
+
+  const hrUser = await prisma.user.upsert({
+    where: { email: 'hr@nexus.com' },
+    update: {
+      passwordHash: hrPasswordHash,
       roleId: hrRole.id,
       departmentId: hrDept.id,
       position: 'HR Director',
       employeeCode: 'EMP-002',
+      failedLoginAttempts: 0,
+      lockedUntil: null,
       isActive: true,
       isEmailVerified: true
     },
@@ -256,7 +409,7 @@ async function main() {
       employeeCode: 'EMP-002',
       firstName: 'Sarah',
       lastName: 'Jenkins',
-      email: 'hr@pratha.com',
+      email: 'hr@nexus.com',
       passwordHash: hrPasswordHash,
       phone: '+1-555-0101',
       position: 'HR Director',
@@ -269,13 +422,47 @@ async function main() {
     }
   });
 
-  const empUser = await prisma.user.upsert({
-    where: { email: 'alex.morgan@pratha.com' },
+  // HR Membership
+  await prisma.organizationMembership.upsert({
+    where: {
+      organizationId_userId: {
+        organizationId: defaultOrg.id,
+        userId: hrUser.id
+      }
+    },
     update: {
+      roleId: hrRole.id,
+      departmentId: hrDept.id,
+      position: 'HR Director',
+      employeeCode: 'EMP-002',
+      salary: 95000,
+      status: 'ACTIVE',
+      isActive: true
+    },
+    create: {
+      organizationId: defaultOrg.id,
+      userId: hrUser.id,
+      roleId: hrRole.id,
+      departmentId: hrDept.id,
+      position: 'HR Director',
+      employeeCode: 'EMP-002',
+      salary: 95000,
+      status: 'ACTIVE',
+      isActive: true,
+      joiningDate: new Date('2024-02-01')
+    }
+  });
+
+  const empUser = await prisma.user.upsert({
+    where: { email: 'alex.morgan@nexus.com' },
+    update: {
+      passwordHash: employeePasswordHash,
       roleId: employeeRole.id,
       departmentId: engineeringDept.id,
       position: 'Senior Fullstack Engineer',
       employeeCode: 'EMP-003',
+      failedLoginAttempts: 0,
+      lockedUntil: null,
       isActive: true,
       isEmailVerified: true
     },
@@ -283,7 +470,7 @@ async function main() {
       employeeCode: 'EMP-003',
       firstName: 'Alex',
       lastName: 'Morgan',
-      email: 'alex.morgan@pratha.com',
+      email: 'alex.morgan@nexus.com',
       passwordHash: employeePasswordHash,
       phone: '+1-555-0102',
       position: 'Senior Fullstack Engineer',
@@ -296,22 +483,55 @@ async function main() {
     }
   });
 
-  // 7. Seed Starter Announcement
+  // Employee Membership
+  await prisma.organizationMembership.upsert({
+    where: {
+      organizationId_userId: {
+        organizationId: defaultOrg.id,
+        userId: empUser.id
+      }
+    },
+    update: {
+      roleId: employeeRole.id,
+      departmentId: engineeringDept.id,
+      position: 'Senior Fullstack Engineer',
+      employeeCode: 'EMP-003',
+      salary: 110000,
+      status: 'ACTIVE',
+      isActive: true
+    },
+    create: {
+      organizationId: defaultOrg.id,
+      userId: empUser.id,
+      roleId: employeeRole.id,
+      departmentId: engineeringDept.id,
+      position: 'Senior Fullstack Engineer',
+      employeeCode: 'EMP-003',
+      salary: 110000,
+      status: 'ACTIVE',
+      isActive: true,
+      joiningDate: new Date('2024-03-15')
+    }
+  });
+
+  // 8. Seed Starter Announcement
   console.log('📢 Seeding starter announcements...');
   await prisma.announcement.deleteMany();
   await prisma.announcement.create({
     data: {
-      title: 'Welcome to the New Pratha HRMS Portal',
+      organizationId: defaultOrg.id,
+      title: 'Welcome to the New Nexus HRMS Portal',
       content: 'We have updated our internal workforce platform with unified employee profiles, direct leave tracking, and faster self-service workflows.',
       authorId: hrUser.id
     }
   });
 
-  // 8. Seed Demo Leave Request
+  // 9. Seed Demo Leave Request
   console.log('📝 Seeding sample leave request...');
   await prisma.leaveRequest.deleteMany();
   await prisma.leaveRequest.create({
     data: {
+      organizationId: defaultOrg.id,
       userId: empUser.id,
       leaveTypeId: casualLeave.id,
       startDate: new Date('2026-09-01'),
@@ -321,13 +541,14 @@ async function main() {
     }
   });
 
-  // 9. Seed Projects & Resource Allocation
+  // 10. Seed Projects & Resource Allocation
   console.log('🚀 Seeding sample projects & staffing...');
   await prisma.projectMember.deleteMany();
   await prisma.project.deleteMany();
 
   const project1 = await prisma.project.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'FinTech NextGen Mobile Banking',
       clientName: 'Apex Financial Corp',
       description: 'Zero-latency mobile banking application with biometric authorization and real-time fraud alerts.',
@@ -339,6 +560,7 @@ async function main() {
 
   const project2 = await prisma.project.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'Enterprise AI Workforce Analytics',
       clientName: 'Global Logistics Ltd',
       description: 'Predictive attrition modeling and real-time productivity intelligence engine for logistics teams.',
@@ -350,6 +572,7 @@ async function main() {
 
   await prisma.project.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'Internal Identity & SSO Migration',
       clientName: 'Internal Ops',
       description: 'Upgrading enterprise authentication with WebAuthn, FIDO2 keys, and OAuth2 federation.',
@@ -387,12 +610,13 @@ async function main() {
     }
   });
 
-  // 10. Seed IT Hardware & Assets
+  // 11. Seed IT Hardware & Assets
   console.log('💻 Seeding hardware & IT assets...');
   await prisma.asset.deleteMany();
 
   await prisma.asset.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'Apple MacBook Pro 16" (M3 Max, 36GB, 1TB)',
       serialNumber: 'MBP-M3-90214',
       type: 'LAPTOP',
@@ -405,6 +629,7 @@ async function main() {
 
   await prisma.asset.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'Dell UltraSharp 32" 4K USB-C Hub Monitor (U3223QE)',
       serialNumber: 'DEL-MON-78102',
       type: 'MONITOR',
@@ -417,6 +642,7 @@ async function main() {
 
   await prisma.asset.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'Apple MacBook Pro 14" (M3 Pro, 18GB, 512GB)',
       serialNumber: 'MBP-M3-44190',
       type: 'LAPTOP',
@@ -429,6 +655,7 @@ async function main() {
 
   await prisma.asset.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'YubiKey 5C NFC Security Key',
       serialNumber: 'YUBI-5C-88231',
       type: 'SECURITY_KEY',
@@ -439,6 +666,7 @@ async function main() {
 
   await prisma.asset.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'Dell Precision 5570 Mobile Workstation',
       serialNumber: 'DEL-WRK-55209',
       type: 'LAPTOP',
@@ -449,6 +677,7 @@ async function main() {
 
   await prisma.asset.create({
     data: {
+      organizationId: defaultOrg.id,
       name: 'Apple iPad Pro 12.9" (M2, Cellular 256GB)',
       serialNumber: 'IPD-M2-31092',
       type: 'MOBILE_DEVICE',
@@ -459,20 +688,26 @@ async function main() {
 
   console.log('\n✅ Database seeding completed successfully!\n');
   console.log('===============================================================');
+  console.log('🏢 DEFAULT ORGANIZATION');
+  console.log('===============================================================');
+  console.log(`Name: ${defaultOrg.name}`);
+  console.log(`Slug: ${defaultOrg.slug}`);
+  console.log(`ID:   ${defaultOrg.id}`);
+  console.log('===============================================================');
   console.log('🔑 DEFAULT CREDENTIALS FOR DEVELOPMENT');
   console.log('===============================================================');
   console.log(`ADMIN User:`);
-  console.log(`  Email:    admin@pratha.com`);
+  console.log(`  Email:    admin@nexus.com`);
   console.log(`  Password: Admin@123456`);
   console.log(`  Role:     ADMIN`);
   console.log('---------------------------------------------------------------');
   console.log(`HR User:`);
-  console.log(`  Email:    hr@pratha.com`);
+  console.log(`  Email:    hr@nexus.com`);
   console.log(`  Password: Hr@123456`);
   console.log(`  Role:     HR`);
   console.log('---------------------------------------------------------------');
   console.log(`EMPLOYEE User:`);
-  console.log(`  Email:    alex.morgan@pratha.com`);
+  console.log(`  Email:    alex.morgan@nexus.com`);
   console.log(`  Password: Emp@123456`);
   console.log(`  Role:     EMPLOYEE`);
   console.log('===============================================================\n');
@@ -486,3 +721,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

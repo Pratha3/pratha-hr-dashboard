@@ -37,6 +37,18 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
+  // Exempt public authentication routes where no session exists yet
+  const urlPath = req.originalUrl || req.path || '';
+  if (
+    urlPath.includes('/api/v1/auth/login') ||
+    urlPath.includes('/api/v1/auth/register') ||
+    urlPath.includes('/api/v1/auth/refresh') ||
+    urlPath.includes('/api/v1/auth/forgot-password') ||
+    urlPath.includes('/api/v1/auth/reset-password')
+  ) {
+    return next();
+  }
+
   // Allow test bypass only if specifically configured
   if (process.env.DISABLE_CSRF_CHECK === 'true') {
     return next();
@@ -44,13 +56,11 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
 
   const headerToken = (req.headers[CSRF_HEADER_NAME] || req.headers['x-xsrf-token']) as string;
 
-  // If a CSRF cookie was sent with the request, the custom header MUST match it in constant time
-  if (existingCookie) {
-    if (!headerToken || !safeCompare(headerToken, existingCookie)) {
-      return next(
-        new AppError('Invalid or missing CSRF token', 403, 'CSRF_VALIDATION_FAILED')
-      );
-    }
+  // On mutating requests, both the CSRF cookie and custom header MUST be present and match in constant time
+  if (!existingCookie || !headerToken || !safeCompare(headerToken, existingCookie)) {
+    return next(
+      new AppError('Invalid or missing CSRF token', 403, 'CSRF_VALIDATION_FAILED')
+    );
   }
 
   next();

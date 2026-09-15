@@ -14,28 +14,39 @@ import { prisma } from '../../config/database';
 export class AssetsService {
   constructor(private repo: AssetsRepository = assetsRepository) {}
 
-  async listAssets(query: AssetQueryInput) {
-    return this.repo.findAssets(query);
+  async listAssets(query: AssetQueryInput, organizationId?: string) {
+    return this.repo.findAssets({ ...query, organizationId });
   }
 
-  async getAssetById(id: string) {
-    const asset = await this.repo.findById(id);
+  async getAssetById(id: string, organizationId?: string) {
+    const asset = await this.repo.findById(id, organizationId);
     if (!asset) {
       throw new NotFoundError('Asset record not found');
     }
     return asset;
   }
 
-  async createAsset(input: CreateAssetInput, actorId?: string) {
-    const existing = await this.repo.findBySerialNumber(input.serialNumber.trim());
+  async createAsset(input: CreateAssetInput, actorId?: string, organizationId?: string) {
+    const existing = await this.repo.findBySerialNumber(input.serialNumber.trim(), organizationId);
     if (existing) {
       throw new ConflictError('An asset with this serial number already exists');
     }
 
     if (input.assignedToId) {
-      const user = await prisma.user.findUnique({ where: { id: input.assignedToId } });
+      const user = await prisma.user.findFirst({
+        where: {
+          id: input.assignedToId,
+          ...(organizationId
+            ? {
+                memberships: {
+                  some: { organizationId, isActive: true }
+                }
+              }
+            : { isActive: true })
+        }
+      });
       if (!user) {
-        throw new NotFoundError('Assigned user not found');
+        throw new NotFoundError('Assigned user not found in this organization');
       }
     }
 
@@ -45,11 +56,13 @@ export class AssetsService {
       type: input.type,
       status: input.status,
       assignedToId: input.assignedToId,
-      notes: input.notes?.trim() || null
+      notes: input.notes?.trim() || null,
+      organizationId
     });
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: 'ASSET_CREATED',
         entity: 'Asset',
@@ -58,7 +71,8 @@ export class AssetsService {
           name: asset.name,
           serialNumber: asset.serialNumber,
           type: asset.type,
-          assignedToId: asset.assignedToId
+          assignedToId: asset.assignedToId,
+          organizationId
         }
       }
     });
@@ -66,23 +80,34 @@ export class AssetsService {
     return asset;
   }
 
-  async updateAsset(id: string, input: UpdateAssetInput, actorId?: string) {
-    const asset = await this.repo.findById(id);
+  async updateAsset(id: string, input: UpdateAssetInput, actorId?: string, organizationId?: string) {
+    const asset = await this.repo.findById(id, organizationId);
     if (!asset) {
       throw new NotFoundError('Asset record not found');
     }
 
     if (input.serialNumber && input.serialNumber.trim() !== asset.serialNumber) {
-      const existing = await this.repo.findBySerialNumber(input.serialNumber.trim());
+      const existing = await this.repo.findBySerialNumber(input.serialNumber.trim(), organizationId);
       if (existing) {
         throw new ConflictError('An asset with this serial number already exists');
       }
     }
 
     if (input.assignedToId !== undefined && input.assignedToId !== null) {
-      const user = await prisma.user.findUnique({ where: { id: input.assignedToId } });
+      const user = await prisma.user.findFirst({
+        where: {
+          id: input.assignedToId,
+          ...(organizationId
+            ? {
+                memberships: {
+                  some: { organizationId, isActive: true }
+                }
+              }
+            : { isActive: true })
+        }
+      });
       if (!user) {
-        throw new NotFoundError('Assigned user not found');
+        throw new NotFoundError('Assigned user not found in this organization');
       }
     }
 
@@ -103,19 +128,20 @@ export class AssetsService {
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: 'ASSET_UPDATED',
         entity: 'Asset',
         entityId: id,
-        metadata: input as any
+        metadata: { ...input, organizationId } as any
       }
     });
 
     return updated;
   }
 
-  async deleteAsset(id: string, actorId?: string) {
-    const asset = await this.repo.findById(id);
+  async deleteAsset(id: string, actorId?: string, organizationId?: string) {
+    const asset = await this.repo.findById(id, organizationId);
     if (!asset) {
       throw new NotFoundError('Asset record not found');
     }
@@ -124,27 +150,39 @@ export class AssetsService {
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: 'ASSET_DELETED',
         entity: 'Asset',
         entityId: id,
-        metadata: { name: asset.name, serialNumber: asset.serialNumber }
+        metadata: { name: asset.name, serialNumber: asset.serialNumber, organizationId }
       }
     });
 
     return { message: 'Asset record deleted successfully' };
   }
 
-  async assignAsset(id: string, input: AssignAssetInput, actorId?: string) {
-    const asset = await this.repo.findById(id);
+  async assignAsset(id: string, input: AssignAssetInput, actorId?: string, organizationId?: string) {
+    const asset = await this.repo.findById(id, organizationId);
     if (!asset) {
       throw new NotFoundError('Asset record not found');
     }
 
     if (input.assignedToId) {
-      const user = await prisma.user.findUnique({ where: { id: input.assignedToId } });
+      const user = await prisma.user.findFirst({
+        where: {
+          id: input.assignedToId,
+          ...(organizationId
+            ? {
+                memberships: {
+                  some: { organizationId, isActive: true }
+                }
+              }
+            : { isActive: true })
+        }
+      });
       if (!user || !user.isActive) {
-        throw new NotFoundError('Active employee not found');
+        throw new NotFoundError('Active employee not found in this organization');
       }
     }
 
@@ -159,6 +197,7 @@ export class AssetsService {
 
     await prisma.auditLog.create({
       data: {
+        organizationId: organizationId || null,
         userId: actorId || null,
         action: isReclaim ? 'ASSET_RECLAIMED' : 'ASSET_ASSIGNED',
         entity: 'Asset',
@@ -167,7 +206,8 @@ export class AssetsService {
           assetName: asset.name,
           serialNumber: asset.serialNumber,
           assignedToId: input.assignedToId,
-          isReclaim
+          isReclaim,
+          organizationId
         }
       }
     });
@@ -175,8 +215,8 @@ export class AssetsService {
     return updated;
   }
 
-  async getAssetsByUserId(userId: string) {
-    return this.repo.findByUserId(userId);
+  async getAssetsByUserId(userId: string, organizationId?: string) {
+    return this.repo.findByUserId(userId, organizationId);
   }
 }
 

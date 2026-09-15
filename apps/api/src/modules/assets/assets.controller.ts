@@ -14,7 +14,8 @@ export class AssetsController {
   list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { assets, page, limit, total, totalPages } = await this.service.listAssets(
-        req.query as unknown as AssetQueryInput
+        req.query as unknown as AssetQueryInput,
+        req.organizationId
       );
       sendSuccess(res, assets, 200, {
         page,
@@ -31,7 +32,7 @@ export class AssetsController {
 
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.getAssetById(req.params.id);
+      const data = await this.service.getAssetById(req.params.id, req.organizationId);
       sendSuccess(res, data);
     } catch (err) {
       next(err);
@@ -42,7 +43,8 @@ export class AssetsController {
     try {
       const data = await this.service.createAsset(
         req.body as CreateAssetInput,
-        req.user?.id
+        req.user?.id,
+        req.organizationId
       );
       sendSuccess(res, data, 201);
     } catch (err) {
@@ -55,7 +57,8 @@ export class AssetsController {
       const data = await this.service.updateAsset(
         req.params.id,
         req.body as UpdateAssetInput,
-        req.user?.id
+        req.user?.id,
+        req.organizationId
       );
       sendSuccess(res, data);
     } catch (err) {
@@ -65,7 +68,7 @@ export class AssetsController {
 
   delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.deleteAsset(req.params.id, req.user?.id);
+      const data = await this.service.deleteAsset(req.params.id, req.user?.id, req.organizationId);
       sendSuccess(res, data);
     } catch (err) {
       next(err);
@@ -77,7 +80,8 @@ export class AssetsController {
       const data = await this.service.assignAsset(
         req.params.id,
         req.body as AssignAssetInput,
-        req.user?.id
+        req.user?.id,
+        req.organizationId
       );
       sendSuccess(res, data);
     } catch (err) {
@@ -87,7 +91,7 @@ export class AssetsController {
 
   getByUserId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const data = await this.service.getAssetsByUserId(req.params.userId);
+      const data = await this.service.getAssetsByUserId(req.params.userId, req.organizationId);
       sendSuccess(res, data);
     } catch (err) {
       next(err);

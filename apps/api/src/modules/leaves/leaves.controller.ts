@@ -6,9 +6,9 @@ import { LeaveStatus } from '@prisma/client';
 export class LeavesController {
   constructor(private service: LeavesService = leavesService) {}
 
-  listTypes = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  listTypes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const types = await this.service.listTypes();
+      const types = await this.service.listTypes(req.organizationId);
       sendSuccess(res, types);
     } catch (err) {
       next(err);
@@ -19,7 +19,8 @@ export class LeavesController {
     try {
       const leaves = await this.service.listLeaves(
         req.user!.id,
-        req.user!.permissions
+        req.user!.permissions,
+        req.organizationId
       );
       sendSuccess(res, leaves);
     } catch (err) {
@@ -29,10 +30,13 @@ export class LeavesController {
 
   apply = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const leave = await this.service.applyLeave({
-        ...req.body,
-        userId: req.user!.id
-      });
+      const leave = await this.service.applyLeave(
+        {
+          ...req.body,
+          userId: req.user!.id
+        },
+        req.organizationId
+      );
       sendSuccess(res, leave, 201);
     } catch (err) {
       next(err);
@@ -46,7 +50,8 @@ export class LeavesController {
         req.params.id,
         status as LeaveStatus,
         req.user!.id,
-        actionNote
+        actionNote,
+        req.organizationId
       );
       sendSuccess(res, leave);
     } catch (err) {

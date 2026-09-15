@@ -5,7 +5,8 @@ import { prisma } from '../src/config/database';
 vi.mock('../src/config/database', () => ({
   prisma: {
     user: {
-      findUnique: vi.fn()
+      findUnique: vi.fn(),
+      findFirst: vi.fn()
     },
     auditLog: {
       create: vi.fn()
@@ -72,6 +73,7 @@ describe('ProjectsService Unit Tests', () => {
     const project = { id: 'proj-1', name: 'HR Portal' };
     mockRepo.findById.mockResolvedValue(project);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'user-1', isActive: true } as any);
+    vi.mocked(prisma.user.findFirst).mockResolvedValue({ id: 'user-1', isActive: true } as any);
     mockRepo.addOrUpdateMember.mockResolvedValue({
       id: 'pm-1',
       projectId: 'proj-1',

@@ -14,6 +14,36 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
+export const registerSchema = z.object({
+  firstName: z
+    .string({ required_error: 'First name is required' })
+    .trim()
+    .min(1, 'First name is required')
+    .max(100),
+  lastName: z
+    .string({ required_error: 'Last name is required' })
+    .trim()
+    .min(1, 'Last name is required')
+    .max(100),
+  email: z
+    .string({ required_error: 'Email is required' })
+    .email('Invalid email address')
+    .transform((val) => val.trim().toLowerCase()),
+  password: z
+    .string({ required_error: 'Password is required' })
+    .min(8, 'Password must be at least 8 characters long')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  organizationName: z
+    .string({ required_error: 'Organization name is required' })
+    .trim()
+    .min(2, 'Organization name must be at least 2 characters long')
+    .max(150)
+});
+
+export type RegisterInput = z.infer<typeof registerSchema>;
+
 export const changePasswordSchema = z
   .object({
     currentPassword: z
@@ -299,5 +329,67 @@ export const assetQuerySchema = paginationQuerySchema.extend({
 });
 
 export type AssetQueryInput = z.infer<typeof assetQuerySchema>;
+
+// ==================== MULTI-TENANCY & ORGANIZATION SCHEMAS ====================
+
+export const createOrganizationSchema = z.object({
+  name: z
+    .string({ required_error: 'Organization name is required' })
+    .trim()
+    .min(2, 'Name must be at least 2 characters')
+    .max(150),
+  slug: z
+    .string()
+    .trim()
+    .min(2, 'Slug must be at least 2 characters')
+    .max(100)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must consist of lowercase alphanumeric characters and hyphens')
+    .optional(),
+  domain: z.string().trim().max(150).optional().nullable()
+});
+
+export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
+
+export const updateOrganizationSchema = z.object({
+  name: z.string().trim().min(2).max(150).optional(),
+  domain: z.string().trim().max(150).optional().nullable(),
+  logoUrl: z.string().url().optional().nullable()
+});
+
+export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
+
+export const inviteMemberSchema = z.object({
+  email: z
+    .string({ required_error: 'Email is required' })
+    .email('Invalid email address')
+    .transform((val) => val.trim().toLowerCase()),
+  roleId: z.string().uuid('Valid role ID is required'),
+  departmentId: z.string().uuid().optional().nullable(),
+  position: z.string().max(100).optional().nullable()
+});
+
+export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+
+export const acceptInvitationSchema = z.object({
+  token: z.string({ required_error: 'Invitation token is required' }).min(1),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters long')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .optional(),
+  firstName: z.string().trim().min(1).max(100).optional(),
+  lastName: z.string().trim().min(1).max(100).optional()
+});
+
+export type AcceptInvitationInput = z.infer<typeof acceptInvitationSchema>;
+
+export const switchOrganizationSchema = z.object({
+  organizationId: z.string().uuid('Valid organization ID is required')
+});
+
+export type SwitchOrganizationInput = z.infer<typeof switchOrganizationSchema>;
+
 
 
