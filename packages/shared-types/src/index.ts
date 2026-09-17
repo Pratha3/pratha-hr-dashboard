@@ -451,3 +451,26 @@ export interface AssetDto {
   updatedAt: Date | string;
 }
 
+// Notification DTOs
+export interface NotificationDto {
+  id: string;
+  organizationId?: string | null;
+  userId: string;
+  actorId?: string | null;
+  actor?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  } | null;
+  type: 'LEAVE_REQUEST' | 'LEAVE_STATUS' | 'ANNOUNCEMENT' | 'PROJECT_ASSIGNED' | 'ASSET_ASSIGNED' | 'SYSTEM' | string;
+  title: string;
+  message: string;
+  link?: string | null;
+  isRead: boolean;
+  readAt?: Date | string | null;
+  metadata?: any;
+  createdAt: Date | string;
+}
+
+

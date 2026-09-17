@@ -5,6 +5,7 @@ import { ConflictError, NotFoundError, ValidationError, AuthenticationError } fr
 import { InviteMemberInput, AcceptInvitationInput } from '@ems/validation';
 import { prisma } from '../../config/database';
 import { logger } from '../../common/utils/logger';
+import { emailService } from '../../common/services/email.service';
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -58,11 +59,36 @@ export class InvitationsService {
     });
 
     logger.info(`✉️ [INVITATION GENERATED] For ${email} to join organization ${organizationId}`);
-    console.log('\n===============================================================');
-    console.log(`✉️ INVITATION LINK FOR [${email}]`);
-    console.log(`Token: ${rawToken}`);
-    console.log(`Link:  http://localhost:3000/invite/${rawToken}`);
-    console.log('===============================================================\n');
+    
+    // Fetch organization and role names for email template
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true }
+    });
+    const role = await prisma.role.findUnique({
+      where: { id: input.roleId },
+      select: { name: true }
+    });
+    let invitedByName: string | undefined;
+    if (actorId) {
+      const inviter = await prisma.user.findUnique({
+        where: { id: actorId },
+        select: { firstName: true, lastName: true }
+      });
+      if (inviter) {
+        invitedByName = `${inviter.firstName} ${inviter.lastName}`;
+      }
+    }
+
+    // Send transactional invitation email with clickable invite link
+    emailService.sendInvitationEmail(email, {
+      organizationName: org?.name || 'Nexus HRMS Workspace',
+      invitedByName,
+      roleName: role?.name || 'Member',
+      inviteToken: rawToken
+    }).catch((err) => {
+      logger.warn(`Could not dispatch invitation email to ${email}`, { err });
+    });
 
     await prisma.auditLog.create({
       data: {

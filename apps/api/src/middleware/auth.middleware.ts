@@ -15,13 +15,16 @@ declare global {
 export async function authMiddleware(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new AuthenticationError('Authorization header missing or invalid format');
+    let token: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query && typeof req.query.token === 'string') {
+      token = req.query.token;
     }
 
-    const token = authHeader.split(' ')[1];
     if (!token) {
-      throw new AuthenticationError('Bearer token is required');
+      throw new AuthenticationError('Bearer token or query token is required');
     }
 
     const decoded = verifyAccessToken(token);

@@ -10,6 +10,7 @@ import {
   AssignProjectMemberInput
 } from '@ems/validation';
 import { prisma } from '../../config/database';
+import { notificationsService } from '../notifications/notifications.service';
 
 export class ProjectsService {
   constructor(private repo: ProjectsRepository = projectsRepository) {}
@@ -174,6 +175,18 @@ export class ProjectsService {
         }
       }
     });
+
+    // Notify assigned employee in real-time & via email
+    notificationsService.notifyProjectAssigned({
+      projectId,
+      projectName: project.name,
+      clientName: project.clientName,
+      userId: input.userId,
+      role: input.role,
+      allocation: input.allocation,
+      actorId,
+      organizationId
+    }).catch(() => {});
 
     return member;
   }

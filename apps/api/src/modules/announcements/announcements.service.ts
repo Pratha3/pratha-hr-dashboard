@@ -1,6 +1,7 @@
 import { announcementsRepository, AnnouncementsRepository } from './announcements.repository';
 import { NotFoundError } from '../../common/errors/app-error';
 import { prisma } from '../../config/database';
+import { notificationsService } from '../notifications/notifications.service';
 
 export class AnnouncementsService {
   constructor(private repo: AnnouncementsRepository = announcementsRepository) {}
@@ -30,6 +31,15 @@ export class AnnouncementsService {
         metadata: { title: announcement.title, organizationId }
       }
     });
+
+    // Notify organization members in real time & via email
+    notificationsService.notifyAnnouncementPublished({
+      announcementId: announcement.id,
+      organizationId,
+      authorId: data.authorId,
+      title: announcement.title,
+      content: announcement.content
+    }).catch(() => {});
 
     return announcement;
   }

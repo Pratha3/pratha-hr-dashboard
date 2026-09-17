@@ -50,7 +50,21 @@ const envSchema = z.object({
   MAX_FILE_SIZE_MB: z
     .string()
     .default('5')
-    .transform((val) => parseInt(val, 10))
+    .transform((val) => parseInt(val, 10)),
+  // Email / SMTP Settings
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z
+    .string()
+    .default('587')
+    .transform((val) => parseInt(val, 10)),
+  SMTP_SECURE: z
+    .string()
+    .default('false')
+    .transform((val) => val === 'true'),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().default('Nexus HRMS <noreply@nexus.com>'),
+  APP_URL: z.string().default('http://localhost:3000')
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

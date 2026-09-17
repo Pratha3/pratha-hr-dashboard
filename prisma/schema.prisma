@@ -78,6 +78,7 @@ model Organization {
   projects            Project[]
   assets              Asset[]
   auditLogs           AuditLog[]
+  notifications       Notification[]
 
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
@@ -186,6 +187,8 @@ model User {
   announcements       Announcement[]
   projectMembers      ProjectMember[]
   assignedAssets      Asset[]
+  notifications       Notification[]           @relation("UserNotifications")
+  triggeredNotifications Notification[]        @relation("NotificationActor")
 
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
@@ -454,5 +457,33 @@ model Asset {
   @@index([serialNumber])
   @@map("assets")
 }
+
+// ==========================================
+// 12. NOTIFICATIONS
+// ==========================================
+model Notification {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String?       @db.Uuid
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String        @db.Uuid
+  user           User          @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actorId        String?       @db.Uuid
+  actor          User?         @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  type           String        @db.VarChar(50)
+  title          String        @db.VarChar(200)
+  message        String        @db.Text
+  link           String?       @db.VarChar(255)
+  isRead         Boolean       @default(false)
+  readAt         DateTime?
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
 
 

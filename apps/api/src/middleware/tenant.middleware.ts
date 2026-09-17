@@ -22,7 +22,7 @@ export async function tenantMiddleware(
       return next();
     }
 
-    const orgHeader = req.headers['x-organization-id'] as string | undefined;
+    const orgHeader = (req.headers['x-organization-id'] || req.query?.orgId) as string | undefined;
 
     // Fetch user's active memberships with roles & permissions
     const memberships = await prisma.organizationMembership.findMany({

@@ -10,6 +10,7 @@ import {
   AssetQueryInput
 } from '@ems/validation';
 import { prisma } from '../../config/database';
+import { notificationsService } from '../notifications/notifications.service';
 
 export class AssetsService {
   constructor(private repo: AssetsRepository = assetsRepository) {}
@@ -211,6 +212,20 @@ export class AssetsService {
         }
       }
     });
+
+    // Notify employee of asset assignment
+    if (!isReclaim && input.assignedToId) {
+      notificationsService.notifyAssetAssigned({
+        assetId: id,
+        assetName: asset.name,
+        serialNumber: asset.serialNumber,
+        assetType: asset.type,
+        userId: input.assignedToId,
+        notes: input.notes,
+        actorId,
+        organizationId
+      }).catch(() => {});
+    }
 
     return updated;
   }

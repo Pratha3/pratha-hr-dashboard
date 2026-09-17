@@ -10,6 +10,7 @@ import { projectsRouter } from '../modules/projects/projects.routes';
 import { assetsRouter } from '../modules/assets/assets.routes';
 import { organizationsRouter } from '../modules/organizations/organizations.routes';
 import { invitationsRouter } from '../modules/invitations/invitations.routes';
+import { notificationsRouter } from '../modules/notifications/notifications.routes';
 
 export const apiRouter = Router();
 
@@ -17,6 +18,7 @@ export const apiRouter = Router();
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/organizations', organizationsRouter);
 apiRouter.use('/invitations', invitationsRouter);
+apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/users', usersRouter);
 apiRouter.use('/departments', departmentsRouter);
 apiRouter.use('/leaves', leavesRouter);

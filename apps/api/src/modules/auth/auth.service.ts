@@ -23,6 +23,7 @@ import {
 } from '@ems/validation';
 import { PermissionName, UserSummary, UserOrgContext } from '@ems/shared-types';
 import { logger } from '../../common/utils/logger';
+import { emailService } from '../../common/services/email.service';
 import { prisma } from '../../config/database';
 
 const MAX_FAILED_ATTEMPTS = 5;
@@ -388,13 +389,13 @@ export class AuthService {
       expiresAt
     });
 
-    // In dev / if no mail provider, log the reset token to console
-    logger.info(`🔑 [DEV/STAGING] Password reset requested for ${user.email}`);
-    console.log('\n===============================================================');
-    console.log(`🔑 PASSWORD RESET TOKEN FOR [${user.email}]`);
-    console.log(`Token: ${rawResetToken}`);
-    console.log(`Expires in: 1 hour`);
-    console.log('===============================================================\n');
+    // Send transactional password reset email
+    emailService.sendPasswordResetEmail(user.email, {
+      userName: `${user.firstName} ${user.lastName}`,
+      resetToken: rawResetToken
+    }).catch((err) => {
+      logger.warn(`Could not dispatch password reset email to ${user.email}`, { err });
+    });
 
     return genericResponse;
   }

@@ -1,0 +1,338 @@
+import nodemailer, { Transporter } from 'nodemailer';
+import { env } from '../../config/env';
+import { logger } from '../utils/logger';
+
+export interface EmailOptions {
+  to: string;
+  subject: string;
+  text?: string;
+  html: string;
+}
+
+class EmailService {
+  private transporter: Transporter | null = null;
+  private isConfigured = false;
+
+  constructor() {
+    if (env.SMTP_HOST && env.SMTP_USER) {
+      try {
+        this.transporter = nodemailer.createTransport({
+          host: env.SMTP_HOST,
+          port: env.SMTP_PORT,
+          secure: env.SMTP_SECURE,
+          auth: {
+            user: env.SMTP_USER,
+            pass: env.SMTP_PASS
+          }
+        });
+        this.isConfigured = true;
+        logger.info(`📧 SMTP Email Transporter configured for ${env.SMTP_HOST}:${env.SMTP_PORT}`);
+      } catch (err) {
+        logger.error('Failed to initialize SMTP transporter, falling back to console logger', { err });
+        this.transporter = null;
+        this.isConfigured = false;
+      }
+    } else {
+      logger.info('📧 SMTP not configured - email service operating in DEV/CONSOLE preview mode');
+    }
+  }
+
+  async sendMail(options: EmailOptions): Promise<boolean> {
+    try {
+      if (this.isConfigured && this.transporter) {
+        await this.transporter.sendMail({
+          from: env.SMTP_FROM,
+          to: options.to,
+          subject: options.subject,
+          text: options.text || options.subject,
+          html: options.html
+        });
+        logger.info(`📧 Email sent to [${options.to}] - Subject: "${options.subject}"`);
+        return true;
+      } else {
+        // Pretty developer console output
+        console.log('\n===============================================================');
+        console.log(`📧 [DEV EMAIL PREVIEW] To: ${options.to}`);
+        console.log(`📌 Subject: ${options.subject}`);
+        if (options.text) {
+          console.log(`📝 Text Preview: ${options.text.substring(0, 160)}...`);
+        }
+        console.log('===============================================================\n');
+        return true;
+      }
+    } catch (error) {
+      logger.error(`❌ Failed to send email to ${options.to}`, { error, subject: options.subject });
+      return false;
+    }
+  }
+
+  // Base HTML Template wrapper
+  private wrapTemplate(title: string, bodyContent: string, actionButton?: { text: string; url: string }): string {
+    return `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title}</title>
+        <style>
+          body { margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155; }
+          .wrapper { max-width: 600px; margin: 30px auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2); }
+          .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 32px 36px; text-align: left; }
+          .brand { font-size: 20px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; margin: 0; display: flex; align-items: center; }
+          .brand span { color: #38bdf8; margin-left: 4px; }
+          .sub { color: #94a3b8; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px; }
+          .content { padding: 36px; }
+          .title { font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 16px; letter-spacing: -0.3px; }
+          .text { font-size: 15px; line-height: 1.6; color: #475569; margin-bottom: 24px; }
+          .info-box { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px 20px; margin-bottom: 24px; }
+          .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #edf2f7; font-size: 13px; }
+          .info-row:last-child { border-bottom: none; }
+          .info-label { color: #64748b; font-weight: 500; }
+          .info-value { color: #0f172a; font-weight: 600; text-align: right; }
+          .btn-container { text-align: center; margin: 32px 0 16px 0; }
+          .btn { display: inline-block; background-color: #0f172a; color: #ffffff !important; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; letter-spacing: 0.2px; }
+          .footer { background-color: #f8fafc; padding: 24px 36px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="header">
+            <div class="brand">Nexus<span>HRMS</span></div>
+            <div class="sub">Enterprise Human Capital OS</div>
+          </div>
+          <div class="content">
+            <h1 class="title">${title}</h1>
+            ${bodyContent}
+            ${
+              actionButton
+                ? `<div class="btn-container"><a href="${actionButton.url}" class="btn">${actionButton.text}</a></div>`
+                : ''
+            }
+          </div>
+          <div class="footer">
+            &copy; ${new Date().getFullYear()} Nexus HRMS Enterprise. Automated system update. Please do not reply directly.
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  // 1. Leave Request Created (Target: HR / Admin)
+  async sendLeaveRequestAlert(
+    to: string,
+    data: {
+      employeeName: string;
+      employeeEmail: string;
+      leaveType: string;
+      startDate: string;
+      endDate: string;
+      reason: string;
+      dashboardUrl?: string;
+    }
+  ) {
+    const url = data.dashboardUrl || `${env.APP_URL}/leaves`;
+    const body = `
+      <p class="text">A new leave request has been submitted by <strong>${data.employeeName}</strong> and requires management review.</p>
+      <div class="info-box">
+        <div class="info-row"><span class="info-label">Employee</span><span class="info-value">${data.employeeName} (${data.employeeEmail})</span></div>
+        <div class="info-row"><span class="info-label">Leave Type</span><span class="info-value">${data.leaveType}</span></div>
+        <div class="info-row"><span class="info-label">Duration</span><span class="info-value">${data.startDate} to ${data.endDate}</span></div>
+        <div class="info-row"><span class="info-label">Reason</span><span class="info-value">${data.reason}</span></div>
+      </div>
+      <p class="text">Please log in to the HR portal to approve or reject this leave application.</p>
+    `;
+    return this.sendMail({
+      to,
+      subject: `[Action Required] New Leave Request - ${data.employeeName} (${data.leaveType})`,
+      text: `New leave request submitted by ${data.employeeName} for ${data.leaveType} from ${data.startDate} to ${data.endDate}. Reason: ${data.reason}`,
+      html: this.wrapTemplate('New Leave Request Submitted', body, { text: 'Review Leave Application', url })
+    });
+  }
+
+  // 2. Leave Request Actioned (Target: Employee)
+  async sendLeaveStatusAlert(
+    to: string,
+    data: {
+      employeeName: string;
+      leaveType: string;
+      status: 'APPROVED' | 'REJECTED' | 'CANCELLED';
+      startDate: string;
+      endDate: string;
+      actionByName?: string;
+      actionNote?: string;
+      dashboardUrl?: string;
+    }
+  ) {
+    const url = data.dashboardUrl || `${env.APP_URL}/leaves`;
+    const statusColor = data.status === 'APPROVED' ? '#16a34a' : data.status === 'REJECTED' ? '#dc2626' : '#64748b';
+    const body = `
+      <p class="text">Hello <strong>${data.employeeName}</strong>,</p>
+      <p class="text">Your leave application for <strong>${data.leaveType}</strong> has been updated to:
+        <span style="display:inline-block; padding:4px 10px; border-radius:6px; font-weight:700; color:#fff; background-color:${statusColor}; font-size:12px;">${data.status}</span>
+      </p>
+      <div class="info-box">
+        <div class="info-row"><span class="info-label">Leave Type</span><span class="info-value">${data.leaveType}</span></div>
+        <div class="info-row"><span class="info-label">Duration</span><span class="info-value">${data.startDate} to ${data.endDate}</span></div>
+        ${data.actionByName ? `<div class="info-row"><span class="info-label">Reviewed By</span><span class="info-value">${data.actionByName}</span></div>` : ''}
+        ${data.actionNote ? `<div class="info-row"><span class="info-label">Review Note</span><span class="info-value">${data.actionNote}</span></div>` : ''}
+      </div>
+    `;
+    return this.sendMail({
+      to,
+      subject: `Leave Request ${data.status}: ${data.leaveType} (${data.startDate} to ${data.endDate})`,
+      text: `Your ${data.leaveType} request from ${data.startDate} to ${data.endDate} has been ${data.status}.`,
+      html: this.wrapTemplate(`Leave Request ${data.status}`, body, { text: 'View In Portal', url })
+    });
+  }
+
+  // 3. Announcement Published (Target: Organization Members)
+  async sendAnnouncementAlert(
+    to: string,
+    data: {
+      recipientName: string;
+      title: string;
+      content: string;
+      authorName: string;
+      dashboardUrl?: string;
+    }
+  ) {
+    const url = data.dashboardUrl || `${env.APP_URL}/announcements`;
+    const body = `
+      <p class="text">Hello <strong>${data.recipientName}</strong>,</p>
+      <p class="text">A new company-wide announcement has been posted by <strong>${data.authorName}</strong>:</p>
+      <div class="info-box">
+        <h3 style="margin-top:0; color:#0f172a; font-size:16px;">${data.title}</h3>
+        <p style="color:#475569; font-size:14px; line-height:1.6; margin-bottom:0; white-space:pre-line;">${data.content}</p>
+      </div>
+    `;
+    return this.sendMail({
+      to,
+      subject: `📢 Company Announcement: ${data.title}`,
+      text: `Announcement: ${data.title}\n\n${data.content}\n\nPosted by: ${data.authorName}`,
+      html: this.wrapTemplate('Company Announcement', body, { text: 'View Announcement Noticeboard', url })
+    });
+  }
+
+  // 4. Project Member Assigned (Target: Employee)
+  async sendProjectAssignedAlert(
+    to: string,
+    data: {
+      employeeName: string;
+      projectName: string;
+      clientName?: string | null;
+      role: string;
+      allocation: number;
+      dashboardUrl?: string;
+    }
+  ) {
+    const url = data.dashboardUrl || `${env.APP_URL}/projects`;
+    const body = `
+      <p class="text">Hello <strong>${data.employeeName}</strong>,</p>
+      <p class="text">You have been allocated to a new project team:</p>
+      <div class="info-box">
+        <div class="info-row"><span class="info-label">Project Name</span><span class="info-value">${data.projectName}</span></div>
+        ${data.clientName ? `<div class="info-row"><span class="info-label">Client</span><span class="info-value">${data.clientName}</span></div>` : ''}
+        <div class="info-row"><span class="info-label">Assigned Role</span><span class="info-value">${data.role}</span></div>
+        <div class="info-row"><span class="info-label">Workload Allocation</span><span class="info-value">${data.allocation}%</span></div>
+      </div>
+    `;
+    return this.sendMail({
+      to,
+      subject: `🎯 Project Assignment: ${data.projectName}`,
+      text: `You have been assigned to project ${data.projectName} as ${data.role} with ${data.allocation}% allocation.`,
+      html: this.wrapTemplate('Project Assignment', body, { text: 'Open Projects Hub', url })
+    });
+  }
+
+  // 5. IT Asset Assigned (Target: Employee)
+  async sendAssetAssignedAlert(
+    to: string,
+    data: {
+      employeeName: string;
+      assetName: string;
+      serialNumber: string;
+      assetType: string;
+      notes?: string | null;
+      dashboardUrl?: string;
+    }
+  ) {
+    const url = data.dashboardUrl || `${env.APP_URL}/assets`;
+    const body = `
+      <p class="text">Hello <strong>${data.employeeName}</strong>,</p>
+      <p class="text">A corporate IT asset has been assigned to you:</p>
+      <div class="info-box">
+        <div class="info-row"><span class="info-label">Asset Name</span><span class="info-value">${data.assetName}</span></div>
+        <div class="info-row"><span class="info-label">Asset Type</span><span class="info-value">${data.assetType}</span></div>
+        <div class="info-row"><span class="info-label">Serial Number</span><span class="info-value font-mono">${data.serialNumber}</span></div>
+        ${data.notes ? `<div class="info-row"><span class="info-label">Notes / Instructions</span><span class="info-value">${data.notes}</span></div>` : ''}
+      </div>
+      <p class="text">Please verify the serial number upon receipt and notify IT Ops of any discrepancies.</p>
+    `;
+    return this.sendMail({
+      to,
+      subject: `💻 IT Hardware Assigned: ${data.assetName}`,
+      text: `Corporate IT asset ${data.assetName} (${data.serialNumber}) has been assigned to you.`,
+      html: this.wrapTemplate('Hardware Asset Assigned', body, { text: 'View Hardware Assets', url })
+    });
+  }
+
+  // 6. Organization Invitation (Target: Invitee)
+  async sendInvitationEmail(
+    to: string,
+    data: {
+      organizationName: string;
+      invitedByName?: string;
+      roleName: string;
+      inviteToken: string;
+      inviteLink?: string;
+    }
+  ) {
+    const link = data.inviteLink || `${env.APP_URL}/invite/${data.inviteToken}`;
+    const body = `
+      <p class="text">You have been invited${data.invitedByName ? ` by <strong>${data.invitedByName}</strong>` : ''} to join <strong>${data.organizationName}</strong> on the Nexus HRMS workspace as a <strong>${data.roleName}</strong>.</p>
+      <div class="info-box">
+        <div class="info-row"><span class="info-label">Organization</span><span class="info-value">${data.organizationName}</span></div>
+        <div class="info-row"><span class="info-label">Role</span><span class="info-value">${data.roleName}</span></div>
+        <div class="info-row"><span class="info-label">Validity</span><span class="info-value">7 Days</span></div>
+      </div>
+      <p class="text">Click the button below to complete your profile setup and access the organization dashboard.</p>
+    `;
+    return this.sendMail({
+      to,
+      subject: `Invitation to join ${data.organizationName} on Nexus HRMS`,
+      text: `You have been invited to join ${data.organizationName} as ${data.roleName}. Accept invitation here: ${link}`,
+      html: this.wrapTemplate(`Join ${data.organizationName}`, body, { text: 'Accept Invitation & Join', url: link })
+    });
+  }
+
+  // 7. Password Reset Email (Target: User)
+  async sendPasswordResetEmail(
+    to: string,
+    data: {
+      userName?: string;
+      resetToken: string;
+      resetLink?: string;
+    }
+  ) {
+    const link = data.resetLink || `${env.APP_URL}/reset-password?token=${data.resetToken}`;
+    const body = `
+      <p class="text">Hello${data.userName ? ` <strong>${data.userName}</strong>` : ''},</p>
+      <p class="text">We received a request to reset the password for your Nexus HRMS account.</p>
+      <p class="text">Click the button below to choose a new password. This link is valid for 1 hour.</p>
+      <div class="info-box">
+        <div class="info-row"><span class="info-label">Expires in</span><span class="info-value">1 Hour</span></div>
+        <div class="info-row"><span class="info-label">Security Notice</span><span class="info-value">If you did not request this, you can ignore this email safely.</span></div>
+      </div>
+    `;
+    return this.sendMail({
+      to,
+      subject: `🔑 Reset Your Password - Nexus HRMS`,
+      text: `Reset your Nexus HRMS password by clicking this link: ${link} (valid for 1 hour).`,
+      html: this.wrapTemplate('Password Reset Request', body, { text: 'Reset Password', url: link })
+    });
+  }
+}
+
+export const emailService = new EmailService();

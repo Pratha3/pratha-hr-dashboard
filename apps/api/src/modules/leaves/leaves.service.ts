@@ -3,6 +3,7 @@ import { LeaveStatus } from '@prisma/client';
 import { PermissionName, Permissions } from '@ems/shared-types';
 import { NotFoundError, ConflictError, ValidationError } from '../../common/errors/app-error';
 import { prisma } from '../../config/database';
+import { notificationsService } from '../notifications/notifications.service';
 
 export class LeavesService {
   constructor(private repo: LeavesRepository = leavesRepository) {}
@@ -74,6 +75,24 @@ export class LeavesService {
       }
     });
 
+    // Asynchronously dispatch real-time in-app notification & email to HR / Admin
+    prisma.user.findUnique({
+      where: { id: data.userId },
+      select: { id: true, firstName: true, lastName: true, email: true }
+    }).then((applicant) => {
+      if (applicant) {
+        notificationsService.notifyLeaveRequestCreated({
+          leaveId: leave.id,
+          organizationId,
+          employee: applicant,
+          leaveType: leaveType.name,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          reason: data.reason.trim()
+        });
+      }
+    }).catch(() => {});
+
     return leave;
   }
 
@@ -88,6 +107,9 @@ export class LeavesService {
       where: {
         id,
         ...(organizationId ? { organizationId } : {})
+      },
+      include: {
+        leaveType: true
       }
     });
 
@@ -117,9 +139,23 @@ export class LeavesService {
       }
     });
 
+    // Notify employee of approval / rejection
+    notificationsService.notifyLeaveStatusChanged({
+      leaveId: id,
+      organizationId,
+      applicantUserId: existing.userId,
+      actionByUserId: actionById,
+      status: status as 'APPROVED' | 'REJECTED' | 'CANCELLED',
+      leaveType: existing.leaveType?.name || 'Leave',
+      startDate: existing.startDate.toISOString().split('T')[0],
+      endDate: existing.endDate.toISOString().split('T')[0],
+      actionNote: actionNote?.trim() || null
+    }).catch(() => {});
+
     return updated;
   }
 }
 
 export const leavesService = new LeavesService();
+
 

@@ -39,6 +39,7 @@ import {
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { ProfileSettingsModal } from '@/components/modals/profile-settings-modal';
 import { OrganizationSwitcher } from './organization-switcher';
+import { NotificationBell } from './notification-bell';
 import { cn } from '@/lib/utils';
 import { Permissions, PermissionName } from '@ems/shared-types';
 
@@ -187,6 +188,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
 
           <div className="flex items-center gap-1.5">
+            <NotificationBell />
             <ThemeToggle />
             <Button
               variant="ghost"
@@ -380,10 +382,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="inline-flex items-center gap-1.5 text-[11px]">
+                <div className="inline-flex items-center gap-1.5 text-[11px] hidden md:flex">
                   <span className="h-2 w-2 rounded-full bg-emerald-500" />
                   <span className="text-muted-foreground font-medium">All Systems Operational</span>
                 </div>
+                <div className="h-4 w-px bg-border hidden md:block" />
+                <NotificationBell />
                 <div className="h-4 w-px bg-border" />
                 <ThemeToggle />
               </div>
