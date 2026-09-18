@@ -149,6 +149,13 @@ export default function EmployeesPage() {
   const users = data?.users || [];
   const meta = data?.meta;
 
+  const roles = (metadata?.roles || []).filter(
+    (r: any, idx: number, arr: any[]) => arr.findIndex((x) => x.name === r.name) === idx
+  );
+  const departments = (metadata?.departments || []).filter(
+    (d: any, idx: number, arr: any[]) => arr.findIndex((x) => x.name === d.name) === idx
+  );
+
   const getStatusBadge = (userStatus: EmployeeStatus, isActive: boolean) => {
     if (!isActive) {
       return <Badge variant="destructive">Inactive</Badge>;
@@ -222,7 +229,7 @@ export default function EmployeesPage() {
             className="h-9 px-3 text-xs rounded-md border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">All Departments</option>
-            {metadata?.departments?.map((dept: any) => (
+            {departments.map((dept: any) => (
               <option key={dept.id} value={dept.id}>
                 {dept.name}
               </option>
@@ -442,8 +449,8 @@ export default function EmployeesPage() {
       <AddMemberModal
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
-        departments={metadata?.departments || []}
-        roles={metadata?.roles || []}
+        departments={departments}
+        roles={roles}
       />
 
       {/* Edit Member Modal */}
@@ -452,8 +459,8 @@ export default function EmployeesPage() {
           user={editingUser}
           isOpen={Boolean(editingUser)}
           onClose={() => setEditingUser(null)}
-          departments={metadata?.departments || []}
-          roles={metadata?.roles || []}
+          departments={departments}
+          roles={roles}
         />
       )}
 

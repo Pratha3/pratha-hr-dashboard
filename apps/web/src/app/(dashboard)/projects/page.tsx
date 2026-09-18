@@ -554,7 +554,12 @@ export default function ProjectsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+          <form
+            onSubmit={handleSubmit(async (d) => {
+              await createMutation.mutateAsync(d);
+            })}
+            className="space-y-4"
+          >
             <FormField label="Project Name" error={errors.name?.message} required>
               <Input placeholder="e.g. NextGen Mobile Banking" {...register('name')} />
             </FormField>
@@ -586,12 +591,16 @@ export default function ProjectsPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsAddOpen(false)}
-                disabled={isSubmitting}
+                disabled={createMutation.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Creating...' : 'Create Project'}
+              <Button
+                type="submit"
+                isLoading={createMutation.isPending}
+                disabled={createMutation.isPending}
+              >
+                Create Project
               </Button>
             </DialogFooter>
           </form>
@@ -610,9 +619,9 @@ export default function ProjectsPage() {
             </DialogHeader>
 
             <form
-              onSubmit={handleEditSubmit((d) =>
-                updateMutation.mutate({ id: editingProject.id, data: d })
-              )}
+              onSubmit={handleEditSubmit(async (d) => {
+                await updateMutation.mutateAsync({ id: editingProject.id, data: d });
+              })}
               className="space-y-4"
             >
               <FormField label="Project Name" error={editErrors.name?.message} required>
@@ -658,12 +667,16 @@ export default function ProjectsPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setEditingProject(null)}
-                  disabled={isSubmittingEdit}
+                  disabled={updateMutation.isPending}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmittingEdit}>
-                  {isSubmittingEdit ? 'Saving...' : 'Save Changes'}
+                <Button
+                  type="submit"
+                  isLoading={updateMutation.isPending}
+                  disabled={updateMutation.isPending}
+                >
+                  Save Changes
                 </Button>
               </DialogFooter>
             </form>
@@ -688,9 +701,9 @@ export default function ProjectsPage() {
             <div className="space-y-5 py-2">
               {/* Add Member Form */}
               <form
-                onSubmit={handleMemberSubmit((data) =>
-                  assignMemberMutation.mutate({ projectId: staffingProject.id, data })
-                )}
+                onSubmit={handleMemberSubmit(async (data) => {
+                  await assignMemberMutation.mutateAsync({ projectId: staffingProject.id, data });
+                })}
                 className="p-3.5 bg-muted/40 rounded-lg border border-border/70 space-y-3"
               >
                 <h4 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -755,9 +768,10 @@ export default function ProjectsPage() {
                     type="submit"
                     size="sm"
                     className="h-8 text-xs font-medium"
-                    disabled={isSubmittingMember}
+                    isLoading={assignMemberMutation.isPending}
+                    disabled={assignMemberMutation.isPending}
                   >
-                    {isSubmittingMember ? 'Assigning...' : 'Assign to Team'}
+                    Assign to Team
                   </Button>
                 </div>
               </form>

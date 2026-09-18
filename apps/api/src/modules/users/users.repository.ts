@@ -294,8 +294,8 @@ export class UsersRepository {
       where: organizationId
         ? {
             OR: [
-              { isSystem: true },
-              { organizationId }
+              { organizationId },
+              { organizationId: null, isSystem: true }
             ]
           }
         : undefined,

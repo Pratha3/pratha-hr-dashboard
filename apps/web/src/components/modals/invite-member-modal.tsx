@@ -62,11 +62,12 @@ export function InviteMemberModal({ open, onOpenChange }: InviteMemberModalProps
         try {
           const res = await apiClient.get('/users/metadata');
           if (res.data?.success && res.data?.data?.roles) {
-            const roleList = res.data.data.roles;
-            setRoles(roleList);
+            const rawRoles: RoleOption[] = res.data.data.roles;
+            const uniqueRoles = rawRoles.filter((r, idx, arr) => arr.findIndex((x) => x.name === r.name) === idx);
+            setRoles(uniqueRoles);
             // Default select EMPLOYEE or first role
             const defaultRole =
-              roleList.find((r: RoleOption) => r.name === 'EMPLOYEE') || roleList[0];
+              uniqueRoles.find((r: RoleOption) => r.name === 'EMPLOYEE') || uniqueRoles[0];
             if (defaultRole) {
               setValue('roleId', defaultRole.id);
             }
