@@ -100,25 +100,55 @@ export class NotificationsController {
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders?.();
 
+    const safeWrite = (data: string) => {
+      if (!res.writableEnded && !res.destroyed) {
+        try {
+          res.write(data);
+        } catch {
+          // Socket closed or write error
+        }
+      }
+    };
+
     // Send initial handshake with current unread count
-    const initialUnreadCount = await this.service.getUnreadCount(userId, organizationId);
-    res.write(`data: ${JSON.stringify({ type: 'INIT', unreadCount: initialUnreadCount })}\n\n`);
+    try {
+      const initialUnreadCount = await this.service.getUnreadCount(userId, organizationId);
+      safeWrite(`data: ${JSON.stringify({ type: 'INIT', unreadCount: initialUnreadCount })}\n\n`);
+    } catch {
+      safeWrite(`data: ${JSON.stringify({ type: 'INIT', unreadCount: 0 })}\n\n`);
+    }
 
     // Listener for real-time user-targeted notifications
     const unsubscribeUser = notificationEmitter.subscribeUser(userId, (payload: RealtimeNotificationPayload) => {
-      res.write(`data: ${JSON.stringify({ type: 'NOTIFICATION', data: payload })}\n\n`);
+      safeWrite(`data: ${JSON.stringify({ type: 'NOTIFICATION', data: payload })}\n\n`);
     });
 
     // Keep connection alive with ping heartbeat every 25 seconds
     const heartbeat = setInterval(() => {
-      res.write(': ping\n\n');
+      safeWrite(': ping\n\n');
     }, 25000);
 
-    req.on('close', () => {
+    let isCleanedUp = false;
+    const cleanup = () => {
+      if (isCleanedUp) return;
+      isCleanedUp = true;
       clearInterval(heartbeat);
       unsubscribeUser();
-      res.end();
-    });
+      if (!res.writableEnded && !res.destroyed) {
+        try {
+          res.end();
+        } catch {
+          // ignore end error
+        }
+      }
+    };
+
+    req.on('close', cleanup);
+    req.on('end', cleanup);
+    req.on('error', cleanup);
+    res.on('close', cleanup);
+    res.on('error', cleanup);
+    res.on('finish', cleanup);
   };
 }
 

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NotificationsService } from '../src/modules/notifications/notifications.service';
 import { notificationEmitter } from '../src/modules/notifications/notification.emitter';
 import { emailService } from '../src/common/services/email.service';
+import { escapeHtml, formatMultilineText } from '../src/common/utils/sanitize';
 import { prisma } from '../src/config/database';
 
 vi.mock('../src/config/database', () => ({
@@ -15,6 +16,7 @@ vi.mock('../src/config/database', () => ({
     },
     notification: {
       create: vi.fn(),
+      createMany: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
       updateMany: vi.fn()
@@ -32,6 +34,26 @@ vi.mock('../src/common/services/email.service', () => ({
   }
 }));
 
+describe('HTML Sanitization Utility Tests', () => {
+  it('should escape dangerous HTML characters to prevent XSS and HTML injection in emails', () => {
+    const maliciousInput = '<script>alert("xss")</script> & <img src=x onerror=alert(1)>';
+    const escaped = escapeHtml(maliciousInput);
+    expect(escaped).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt; &amp; &lt;img src=x onerror=alert(1)&gt;');
+  });
+
+  it('should safely convert newlines into <br/> tags while escaping HTML tags', () => {
+    const multiline = 'Line 1: <b>Bold</b>\nLine 2: "Quotes" & symbols\r\nLine 3';
+    const formatted = formatMultilineText(multiline);
+    expect(formatted).toBe('Line 1: &lt;b&gt;Bold&lt;/b&gt;<br/>Line 2: &quot;Quotes&quot; &amp; symbols<br/>Line 3');
+  });
+
+  it('should handle null and undefined safely without throwing', () => {
+    expect(escapeHtml(null)).toBe('');
+    expect(escapeHtml(undefined)).toBe('');
+    expect(formatMultilineText(null)).toBe('');
+  });
+});
+
 describe('NotificationsService Unit Tests', () => {
   let service: NotificationsService;
   let mockRepo: any;
@@ -40,6 +62,7 @@ describe('NotificationsService Unit Tests', () => {
     vi.clearAllMocks();
     mockRepo = {
       createNotification: vi.fn(),
+      createManyNotifications: vi.fn().mockResolvedValue({ count: 1 }),
       findUserNotifications: vi.fn(),
       getUnreadCount: vi.fn(),
       markAsRead: vi.fn(),
@@ -95,14 +118,22 @@ describe('NotificationsService Unit Tests', () => {
     }));
   });
 
-  it('should notify HR and Admins when an employee applies for leave', async () => {
-    mockRepo.createNotification.mockResolvedValue({
-      id: 'notif-leave',
-      userId: 'hr-1',
-      isRead: false,
-      createdAt: new Date()
-    });
+  it('should batch create and dispatch notifications for bulk broadcasts', async () => {
+    const emitSpy = vi.spyOn(notificationEmitter, 'emitToUser');
+    const inputs = [
+      { userId: 'user-1', title: 'Update', message: 'Hello 1', type: 'SYSTEM' },
+      { userId: 'user-2', title: 'Update', message: 'Hello 2', type: 'SYSTEM' }
+    ];
 
+    await service.createAndDispatchMany(inputs);
+
+    expect(mockRepo.createManyNotifications).toHaveBeenCalledWith(inputs);
+    expect(emitSpy).toHaveBeenCalledTimes(2);
+    expect(emitSpy).toHaveBeenCalledWith('user-1', expect.objectContaining({ title: 'Update' }));
+    expect(emitSpy).toHaveBeenCalledWith('user-2', expect.objectContaining({ title: 'Update' }));
+  });
+
+  it('should notify HR and Admins when an employee applies for leave using batch insert', async () => {
     vi.mocked(prisma.organizationMembership.findMany).mockResolvedValue([
       {
         user: { id: 'hr-1', email: 'hr@nexus.com', firstName: 'HR', lastName: 'Manager', isActive: true }
@@ -119,10 +150,14 @@ describe('NotificationsService Unit Tests', () => {
       reason: 'Vacation'
     });
 
-    expect(mockRepo.createNotification).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 'hr-1',
-      type: 'LEAVE_REQUEST'
-    }));
+    expect(mockRepo.createManyNotifications).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          userId: 'hr-1',
+          type: 'LEAVE_REQUEST'
+        })
+      ])
+    );
     expect(emailService.sendLeaveRequestAlert).toHaveBeenCalledWith('hr@nexus.com', expect.objectContaining({
       employeeName: 'Alex Morgan',
       leaveType: 'Annual Leave'
@@ -173,5 +208,88 @@ describe('NotificationsService Unit Tests', () => {
 
     await service.markAllAsRead('user-1', 'org-1');
     expect(mockRepo.markAllAsRead).toHaveBeenCalledWith('user-1', 'org-1');
+  });
+
+  it('should deduplicate managers when multiple matching memberships or roles exist', async () => {
+    vi.mocked(prisma.organizationMembership.findMany).mockResolvedValue([
+      {
+        user: { id: 'hr-1', email: 'hr@nexus.com', firstName: 'HR', lastName: 'Lead', isActive: true }
+      },
+      {
+        user: { id: 'hr-1', email: 'hr@nexus.com', firstName: 'HR', lastName: 'Lead', isActive: true }
+      }
+    ] as any);
+
+    await service.notifyLeaveRequestCreated({
+      leaveId: 'leave-123',
+      organizationId: 'org-1',
+      employee: { id: 'emp-1', firstName: 'Alex', lastName: 'Morgan', email: 'alex@nexus.com' },
+      leaveType: 'Annual Leave',
+      startDate: '2026-10-01',
+      endDate: '2026-10-05',
+      reason: 'Vacation'
+    });
+
+    // Should only dispatch 1 notification and 1 email despite duplicate membership entries
+    expect(mockRepo.createManyNotifications).toHaveBeenCalledWith([
+      expect.objectContaining({
+        userId: 'hr-1',
+        type: 'LEAVE_REQUEST'
+      })
+    ]);
+    expect(emailService.sendLeaveRequestAlert).toHaveBeenCalledTimes(1);
+  });
+
+  it('should notify previous owner when an asset is reclaimed', async () => {
+    mockRepo.createNotification.mockResolvedValue({
+      id: 'notif-asset-reclaim',
+      userId: 'emp-1',
+      isRead: false,
+      createdAt: new Date()
+    });
+
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      id: 'emp-1',
+      email: 'emp@nexus.com',
+      firstName: 'John',
+      lastName: 'Doe'
+    } as any);
+
+    await service.notifyAssetReclaimed({
+      assetId: 'asset-1',
+      assetName: 'MacBook Pro M3',
+      serialNumber: 'SN-12345',
+      userId: 'emp-1',
+      organizationId: 'org-1'
+    });
+
+    expect(mockRepo.createNotification).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'emp-1',
+      type: 'ASSET_ASSIGNED',
+      title: 'IT Asset Returned: MacBook Pro M3'
+    }));
+  });
+
+  it('should notify organization admins when a new team member joins using batch insert', async () => {
+    vi.mocked(prisma.organizationMembership.findMany).mockResolvedValue([
+      {
+        user: { id: 'admin-1', email: 'admin@nexus.com', firstName: 'Super', lastName: 'Admin', isActive: true }
+      }
+    ] as any);
+
+    await service.notifyMemberJoined({
+      organizationId: 'org-1',
+      organizationName: 'Nexus HRMS Org',
+      newMember: { id: 'emp-2', firstName: 'Sarah', lastName: 'Connor', email: 'sarah@nexus.com' },
+      roleName: 'Software Engineer'
+    });
+
+    expect(mockRepo.createManyNotifications).toHaveBeenCalledWith([
+      expect.objectContaining({
+        userId: 'admin-1',
+        type: 'SYSTEM',
+        title: 'New Team Member Joined'
+      })
+    ]);
   });
 });

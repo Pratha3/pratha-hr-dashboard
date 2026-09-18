@@ -35,6 +35,52 @@ export class NotificationsRepository {
     });
   }
 
+  async createManyNotifications(
+    data: Array<{
+      userId: string;
+      organizationId?: string | null;
+      actorId?: string | null;
+      type: string;
+      title: string;
+      message: string;
+      link?: string | null;
+      metadata?: any;
+    }>
+  ) {
+    if (!data.length) return { count: 0 };
+    return prisma.notification.createMany({
+      data: data.map((item) => ({
+        userId: item.userId,
+        organizationId: item.organizationId || null,
+        actorId: item.actorId || null,
+        type: item.type,
+        title: item.title,
+        message: item.message,
+        link: item.link || null,
+        metadata: item.metadata || null
+      }))
+    });
+  }
+
+  private buildWhereClause(userId: string, organizationId?: string | null, unreadOnly?: boolean) {
+    const where: any = {
+      userId
+    };
+
+    if (organizationId) {
+      where.OR = [
+        { organizationId },
+        { organizationId: null }
+      ];
+    }
+
+    if (unreadOnly) {
+      where.isRead = false;
+    }
+
+    return where;
+  }
+
   async findUserNotifications(
     userId: string,
     organizationId?: string | null,
@@ -45,12 +91,8 @@ export class NotificationsRepository {
     } = {}
   ) {
     const { unreadOnly = false, limit = 20, offset = 0 } = options;
-
-    const where = {
-      userId,
-      ...(organizationId ? { organizationId } : {}),
-      ...(unreadOnly ? { isRead: false } : {})
-    };
+    const where = this.buildWhereClause(userId, organizationId, unreadOnly);
+    const unreadWhere = this.buildWhereClause(userId, organizationId, true);
 
     const [items, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
@@ -70,13 +112,7 @@ export class NotificationsRepository {
         }
       }),
       prisma.notification.count({ where }),
-      prisma.notification.count({
-        where: {
-          userId,
-          ...(organizationId ? { organizationId } : {}),
-          isRead: false
-        }
-      })
+      prisma.notification.count({ where: unreadWhere })
     ]);
 
     return {
@@ -87,13 +123,8 @@ export class NotificationsRepository {
   }
 
   async getUnreadCount(userId: string, organizationId?: string | null) {
-    return prisma.notification.count({
-      where: {
-        userId,
-        ...(organizationId ? { organizationId } : {}),
-        isRead: false
-      }
-    });
+    const where = this.buildWhereClause(userId, organizationId, true);
+    return prisma.notification.count({ where });
   }
 
   async markAsRead(id: string, userId: string) {
@@ -110,12 +141,9 @@ export class NotificationsRepository {
   }
 
   async markAllAsRead(userId: string, organizationId?: string | null) {
+    const where = this.buildWhereClause(userId, organizationId, true);
     return prisma.notification.updateMany({
-      where: {
-        userId,
-        ...(organizationId ? { organizationId } : {}),
-        isRead: false
-      },
+      where,
       data: {
         isRead: true,
         readAt: new Date()

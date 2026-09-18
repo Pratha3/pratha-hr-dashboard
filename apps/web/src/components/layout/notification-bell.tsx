@@ -25,10 +25,13 @@ import { NotificationDto } from '@ems/shared-types';
 import { cn } from '@/lib/utils';
 
 // Helper to format relative time
-function formatRelativeTime(dateInput: Date | string): string {
+function formatRelativeTime(dateInput?: Date | string | null): string {
+  if (!dateInput) return 'Just now';
   const date = new Date(dateInput);
+  if (isNaN(date.getTime())) return 'Recently';
+  
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const diffInSeconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
 
   if (diffInSeconds < 60) return 'Just now';
   const diffInMinutes = Math.floor(diffInSeconds / 60);
@@ -51,9 +54,9 @@ export function NotificationBell() {
     return true;
   });
 
-  const handleNotificationClick = async (notif: NotificationDto) => {
+  const handleNotificationClick = (notif: NotificationDto) => {
     if (!notif.isRead) {
-      await markAsRead(notif.id);
+      markAsRead(notif.id);
     }
     setOpen(false);
     if (notif.link) {

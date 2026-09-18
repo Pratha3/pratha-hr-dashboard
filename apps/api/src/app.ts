@@ -3,7 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
-import { prisma } from './config/database';
+import { prisma, checkDatabaseHealth } from './config/database';
 import { requestIdMiddleware } from './middleware/request-id.middleware';
 import { generalRateLimiter } from './middleware/rateLimit.middleware';
 import { csrfMiddleware } from './middleware/csrf.middleware';
@@ -11,6 +11,7 @@ import { errorMiddleware } from './middleware/error.middleware';
 import { apiRouter } from './routes';
 import { logger } from './common/utils/logger';
 import { NotFoundError } from './common/errors/app-error';
+import { notificationEmitter } from './modules/notifications/notification.emitter';
 
 export function createApp(): Express {
   const app = express();
@@ -80,21 +81,49 @@ export function createApp(): Express {
     next();
   });
 
-  // Health Check Endpoint
-  app.get('/health', async (_req: Request, res: Response, next: NextFunction) => {
-    try {
-      // Check database connectivity
-      await prisma.$queryRaw`SELECT 1`;
+  // =========================================================================
+  // Production Health & Readiness Probes
+  // =========================================================================
 
-      res.status(200).json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        environment: env.NODE_ENV,
-        database: 'connected'
-      });
-    } catch (err) {
-      next(err);
+  // 1. Lightweight Liveness Probe (for container orchestrators / load balancer ping)
+  app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: env.NODE_ENV
+    });
+  });
+
+  // 2. Deep Readiness Probe (Verifies Database Latency, Memory Usage, and System Metrics)
+  app.get('/health/ready', async (_req: Request, res: Response) => {
+    const dbHealth = await checkDatabaseHealth();
+    const memory = process.memoryUsage();
+    const isHealthy = dbHealth.status === 'healthy';
+
+    const payload = {
+      status: isHealthy ? 'ready' : 'unhealthy',
+      timestamp: new Date().toISOString(),
+      environment: env.NODE_ENV,
+      uptimeSeconds: Math.floor(process.uptime()),
+      database: {
+        status: dbHealth.status,
+        latencyMs: dbHealth.latencyMs,
+        error: dbHealth.error
+      },
+      system: {
+        rssMb: Math.round(memory.rss / (1024 * 1024)),
+        heapUsedMb: Math.round(memory.heapUsed / (1024 * 1024)),
+        heapTotalMb: Math.round(memory.heapTotal / (1024 * 1024)),
+        activeSseConnections: notificationEmitter.getActiveSubscriberCount()
+      }
+    };
+
+    if (!isHealthy) {
+      res.status(503).json(payload);
+      return;
     }
+
+    res.status(200).json(payload);
   });
 
   // Apply General Rate Limiter

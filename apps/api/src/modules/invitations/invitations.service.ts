@@ -6,6 +6,7 @@ import { InviteMemberInput, AcceptInvitationInput } from '@ems/validation';
 import { prisma } from '../../config/database';
 import { logger } from '../../common/utils/logger';
 import { emailService } from '../../common/services/email.service';
+import { notificationsService } from '../notifications/notifications.service';
 
 const INVITATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -227,6 +228,21 @@ export class InvitationsService {
         }
       }
     });
+
+    // Notify organization owner/admins of new member join
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, firstName: true, lastName: true, email: true }
+    }).then((newMember) => {
+      if (newMember) {
+        notificationsService.notifyMemberJoined({
+          organizationId: invite.organizationId,
+          organizationName: invite.organization.name,
+          newMember,
+          roleName: invite.role.name
+        });
+      }
+    }).catch(() => {});
 
     const accessToken = generateAccessToken(userId);
 

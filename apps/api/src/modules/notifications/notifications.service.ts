@@ -44,6 +44,34 @@ export class NotificationsService {
     }
   }
 
+  /**
+   * High-performance batch dispatch for bulk announcements and multi-recipient events.
+   * Inserts records in a single database roundtrip and broadcasts real-time SSE events.
+   */
+  async createAndDispatchMany(inputs: DispatchNotificationInput[]): Promise<void> {
+    if (!inputs.length) return;
+    try {
+      await this.repo.createManyNotifications(inputs);
+
+      // Broadcast real-time SSE events to all connected recipient sockets
+      for (const input of inputs) {
+        notificationEmitter.emitToUser(input.userId, {
+          id: `batch-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          organizationId: input.organizationId,
+          userId: input.userId,
+          type: input.type,
+          title: input.title,
+          message: input.message,
+          link: input.link,
+          isRead: false,
+          createdAt: new Date()
+        });
+      }
+    } catch (err) {
+      logger.error('Failed to create and dispatch bulk notifications', { error: err, count: inputs.length });
+    }
+  }
+
   async getUserNotifications(
     userId: string,
     organizationId?: string | null,
@@ -70,7 +98,7 @@ export class NotificationsService {
 
   /**
    * 1. Triggered when an Employee applies for leave.
-   * Target: All users in the organization with LEAVE_MANAGE permission (HR, Admin, Owner).
+   * Target: All users in the organization with LEAVE_MANAGE permission or Admin/Owner roles.
    */
   async notifyLeaveRequestCreated(data: {
     leaveId: string;
@@ -83,26 +111,34 @@ export class NotificationsService {
   }) {
     try {
       const { organizationId, employee, leaveType, startDate, endDate, reason } = data;
-      const employeeFullName = `${employee.firstName} ${employee.lastName}`;
+      const employeeFullName = `${employee.firstName} ${employee.lastName}`.trim();
 
-      // Find all managers / HR / Admins who have permission to manage leaves
-      let managerUsers: { id: string; email: string; firstName: string; lastName: string }[] = [];
+      // Find all managers / HR / Admins who have permission to manage leaves or admin roles
+      let candidateUsers: { id: string; email: string; firstName: string; lastName: string; isActive?: boolean }[] = [];
 
       if (organizationId) {
-        // Query users in this organization with LEAVE_MANAGE permission
         const members = await prisma.organizationMembership.findMany({
           where: {
             organizationId,
             isActive: true,
-            role: {
-              rolePermissions: {
-                some: {
-                  permission: {
-                    name: Permissions.LEAVE_MANAGE
+            OR: [
+              {
+                role: {
+                  rolePermissions: {
+                    some: {
+                      permission: {
+                        name: Permissions.LEAVE_MANAGE
+                      }
+                    }
                   }
                 }
+              },
+              {
+                role: {
+                  name: { in: ['OWNER', 'ADMIN', 'HR', 'HR_MANAGER'] }
+                }
               }
-            }
+            ]
           },
           include: {
             user: {
@@ -111,59 +147,84 @@ export class NotificationsService {
           }
         });
 
-        managerUsers = members
-          .filter((m) => m.user && m.user.isActive && m.user.id !== employee.id)
-          .map((m) => m.user);
+        candidateUsers = members.map((m) => m.user);
       } else {
-        // Fallback to system HR/Admins
         const users = await prisma.user.findMany({
           where: {
             isActive: true,
-            id: { not: employee.id },
-            role: {
-              rolePermissions: {
-                some: {
-                  permission: {
-                    name: Permissions.LEAVE_MANAGE
+            OR: [
+              {
+                role: {
+                  rolePermissions: {
+                    some: {
+                      permission: {
+                        name: Permissions.LEAVE_MANAGE
+                      }
+                    }
                   }
                 }
+              },
+              {
+                role: {
+                  name: { in: ['OWNER', 'ADMIN', 'HR', 'HR_MANAGER'] }
+                }
               }
-            }
+            ]
           },
-          select: { id: true, email: true, firstName: true, lastName: true }
+          select: { id: true, email: true, firstName: true, lastName: true, isActive: true }
         });
-        managerUsers = users;
+        candidateUsers = users;
       }
 
+      // Deduplicate recipients and exclude the applicant
+      const uniqueManagersMap = new Map<string, { id: string; email: string; firstName: string; lastName: string }>();
+      for (const u of candidateUsers) {
+        if (u && u.id && u.id !== employee.id && u.isActive !== false) {
+          uniqueManagersMap.set(u.id, {
+            id: u.id,
+            email: u.email,
+            firstName: u.firstName,
+            lastName: u.lastName
+          });
+        }
+      }
+
+      const managerUsers = Array.from(uniqueManagersMap.values());
       const title = `New Leave Request: ${employeeFullName}`;
       const message = `${employeeFullName} has applied for ${leaveType} leave from ${startDate} to ${endDate}.`;
       const link = '/leaves';
 
-      for (const manager of managerUsers) {
-        // 1. In-App Notification (Real-time SSE + DB)
-        await this.createAndDispatch({
-          userId: manager.id,
-          organizationId,
-          actorId: employee.id,
-          type: 'LEAVE_REQUEST',
-          title,
-          message,
-          link,
-          metadata: { leaveId: data.leaveId, startDate, endDate, leaveType }
-        });
+      // 1. In-App Notifications (Batch DB Insert + Real-time SSE)
+      const notificationInputs: DispatchNotificationInput[] = managerUsers.map((manager) => ({
+        userId: manager.id,
+        organizationId,
+        actorId: employee.id,
+        type: 'LEAVE_REQUEST',
+        title,
+        message,
+        link,
+        metadata: { leaveId: data.leaveId, startDate, endDate, leaveType }
+      }));
 
-        // 2. Transactional Email Notification
-        if (manager.email) {
-          emailService.sendLeaveRequestAlert(manager.email, {
-            employeeName: employeeFullName,
-            employeeEmail: employee.email,
-            leaveType,
-            startDate,
-            endDate,
-            reason
-          }).catch((e) => logger.warn(`Could not send leave request alert to ${manager.email}`, { e }));
-        }
-      }
+      await this.createAndDispatchMany(notificationInputs);
+
+      // 2. Transactional Email Notifications (Parallel non-blocking dispatches)
+      const emailPromises = managerUsers
+        .filter((manager) => Boolean(manager.email))
+        .map((manager) =>
+          emailService
+            .sendLeaveRequestAlert(manager.email, {
+              employeeName: employeeFullName,
+              employeeEmail: employee.email,
+              leaveType,
+              startDate,
+              endDate,
+              reason
+            })
+            .catch((e) => logger.warn(`Could not send leave request alert to ${manager.email}`, { e }))
+        );
+
+      await Promise.allSettled(emailPromises);
     } catch (error) {
       logger.error('Error in notifyLeaveRequestCreated', { error });
     }
@@ -199,7 +260,7 @@ export class NotificationsService {
           select: { firstName: true, lastName: true }
         });
         if (actor) {
-          actionByName = `${actor.firstName} ${actor.lastName}`;
+          actionByName = `${actor.firstName} ${actor.lastName}`.trim();
         }
       }
 
@@ -225,15 +286,17 @@ export class NotificationsService {
 
       // Email
       if (applicant.email) {
-        emailService.sendLeaveStatusAlert(applicant.email, {
-          employeeName: `${applicant.firstName} ${applicant.lastName}`,
-          leaveType: data.leaveType,
-          status: data.status,
-          startDate: data.startDate,
-          endDate: data.endDate,
-          actionByName,
-          actionNote: data.actionNote || undefined
-        }).catch((e) => logger.warn(`Could not send leave status alert to ${applicant.email}`, { e }));
+        emailService
+          .sendLeaveStatusAlert(applicant.email, {
+            employeeName: `${applicant.firstName} ${applicant.lastName}`.trim(),
+            leaveType: data.leaveType,
+            status: data.status,
+            startDate: data.startDate,
+            endDate: data.endDate,
+            actionByName,
+            actionNote: data.actionNote || undefined
+          })
+          .catch((e) => logger.warn(`Could not send leave status alert to ${applicant.email}`, { e }));
       }
     } catch (error) {
       logger.error('Error in notifyLeaveStatusChanged', { error });
@@ -256,9 +319,9 @@ export class NotificationsService {
         where: { id: data.authorId },
         select: { firstName: true, lastName: true }
       });
-      const authorName = author ? `${author.firstName} ${author.lastName}` : 'HR Team';
+      const authorName = author ? `${author.firstName} ${author.lastName}`.trim() : 'HR Team';
 
-      let members: { id: string; email: string; firstName: string; lastName: string }[] = [];
+      let candidateMembers: { id: string; email: string; firstName: string; lastName: string; isActive?: boolean }[] = [];
 
       if (data.organizationId) {
         const orgMembers = await prisma.organizationMembership.findMany({
@@ -273,46 +336,63 @@ export class NotificationsService {
           }
         });
 
-        members = orgMembers
-          .filter((m) => m.user && m.user.isActive && m.user.id !== data.authorId)
-          .map((m) => m.user);
+        candidateMembers = orgMembers.map((m) => m.user);
       } else {
-        members = await prisma.user.findMany({
+        candidateMembers = await prisma.user.findMany({
           where: {
-            isActive: true,
-            id: { not: data.authorId }
+            isActive: true
           },
-          select: { id: true, email: true, firstName: true, lastName: true }
+          select: { id: true, email: true, firstName: true, lastName: true, isActive: true }
         });
       }
 
+      // Deduplicate recipients and exclude the author
+      const uniqueMembersMap = new Map<string, { id: string; email: string; firstName: string; lastName: string }>();
+      for (const m of candidateMembers) {
+        if (m && m.id && m.id !== data.authorId && m.isActive !== false) {
+          uniqueMembersMap.set(m.id, {
+            id: m.id,
+            email: m.email,
+            firstName: m.firstName,
+            lastName: m.lastName
+          });
+        }
+      }
+
+      const members = Array.from(uniqueMembersMap.values());
       const notifTitle = `📢 Announcement: ${data.title}`;
       const notifMessage = data.content.length > 120 ? `${data.content.substring(0, 117)}...` : data.content;
       const link = '/announcements';
 
-      for (const member of members) {
-        // In-app
-        await this.createAndDispatch({
-          userId: member.id,
-          organizationId: data.organizationId,
-          actorId: data.authorId,
-          type: 'ANNOUNCEMENT',
-          title: notifTitle,
-          message: notifMessage,
-          link,
-          metadata: { announcementId: data.announcementId }
-        });
+      // 1. In-App Notifications (Batch DB Insert + Parallel SSE)
+      const notificationInputs: DispatchNotificationInput[] = members.map((member) => ({
+        userId: member.id,
+        organizationId: data.organizationId,
+        actorId: data.authorId,
+        type: 'ANNOUNCEMENT',
+        title: notifTitle,
+        message: notifMessage,
+        link,
+        metadata: { announcementId: data.announcementId }
+      }));
 
-        // Email
-        if (member.email) {
-          emailService.sendAnnouncementAlert(member.email, {
-            recipientName: `${member.firstName} ${member.lastName}`,
-            title: data.title,
-            content: data.content,
-            authorName
-          }).catch((e) => logger.warn(`Could not send announcement email to ${member.email}`, { e }));
-        }
-      }
+      await this.createAndDispatchMany(notificationInputs);
+
+      // 2. Transactional Email Notifications (Parallel non-blocking dispatches)
+      const emailPromises = members
+        .filter((member) => Boolean(member.email))
+        .map((member) =>
+          emailService
+            .sendAnnouncementAlert(member.email, {
+              recipientName: `${member.firstName} ${member.lastName}`.trim(),
+              title: data.title,
+              content: data.content,
+              authorName
+            })
+            .catch((e) => logger.warn(`Could not send announcement email to ${member.email}`, { e }))
+        );
+
+      await Promise.allSettled(emailPromises);
     } catch (error) {
       logger.error('Error in notifyAnnouncementPublished', { error });
     }
@@ -335,10 +415,10 @@ export class NotificationsService {
     try {
       const user = await prisma.user.findUnique({
         where: { id: data.userId },
-        select: { id: true, email: true, firstName: true, lastName: true }
+        select: { id: true, email: true, firstName: true, lastName: true, isActive: true }
       });
 
-      if (!user) return;
+      if (!user || !user.isActive) return;
 
       const title = `Assigned to Project: ${data.projectName}`;
       const message = `You have been assigned to project "${data.projectName}" as ${data.role} (${data.allocation}% allocation).`;
@@ -360,13 +440,15 @@ export class NotificationsService {
       });
 
       if (user.email) {
-        emailService.sendProjectAssignedAlert(user.email, {
-          employeeName: `${user.firstName} ${user.lastName}`,
-          projectName: data.projectName,
-          clientName: data.clientName,
-          role: data.role,
-          allocation: data.allocation
-        }).catch((e) => logger.warn(`Could not send project assigned email to ${user.email}`, { e }));
+        emailService
+          .sendProjectAssignedAlert(user.email, {
+            employeeName: `${user.firstName} ${user.lastName}`.trim(),
+            projectName: data.projectName,
+            clientName: data.clientName,
+            role: data.role,
+            allocation: data.allocation
+          })
+          .catch((e) => logger.warn(`Could not send project assigned email to ${user.email}`, { e }));
       }
     } catch (error) {
       logger.error('Error in notifyProjectAssigned', { error });
@@ -390,10 +472,10 @@ export class NotificationsService {
     try {
       const user = await prisma.user.findUnique({
         where: { id: data.userId },
-        select: { id: true, email: true, firstName: true, lastName: true }
+        select: { id: true, email: true, firstName: true, lastName: true, isActive: true }
       });
 
-      if (!user) return;
+      if (!user || !user.isActive) return;
 
       const title = `IT Asset Assigned: ${data.assetName}`;
       const message = `Asset ${data.assetName} (Serial: ${data.serialNumber}) has been assigned to you.`;
@@ -414,16 +496,116 @@ export class NotificationsService {
       });
 
       if (user.email) {
-        emailService.sendAssetAssignedAlert(user.email, {
-          employeeName: `${user.firstName} ${user.lastName}`,
-          assetName: data.assetName,
-          serialNumber: data.serialNumber,
-          assetType: data.assetType,
-          notes: data.notes
-        }).catch((e) => logger.warn(`Could not send asset assigned email to ${user.email}`, { e }));
+        emailService
+          .sendAssetAssignedAlert(user.email, {
+            employeeName: `${user.firstName} ${user.lastName}`.trim(),
+            assetName: data.assetName,
+            serialNumber: data.serialNumber,
+            assetType: data.assetType,
+            notes: data.notes
+          })
+          .catch((e) => logger.warn(`Could not send asset assigned email to ${user.email}`, { e }));
       }
     } catch (error) {
       logger.error('Error in notifyAssetAssigned', { error });
+    }
+  }
+
+  /**
+   * 6. Triggered when an IT Hardware Asset is reclaimed / unassigned.
+   * Target: The previous Employee.
+   */
+  async notifyAssetReclaimed(data: {
+    assetId: string;
+    assetName: string;
+    serialNumber: string;
+    userId: string;
+    actorId?: string | null;
+    organizationId?: string | null;
+  }) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: data.userId },
+        select: { id: true, email: true, firstName: true, lastName: true }
+      });
+
+      if (!user) return;
+
+      const title = `IT Asset Returned: ${data.assetName}`;
+      const message = `Asset ${data.assetName} (Serial: ${data.serialNumber}) has been unassigned and returned to inventory.`;
+      const link = '/assets';
+
+      await this.createAndDispatch({
+        userId: user.id,
+        organizationId: data.organizationId,
+        actorId: data.actorId,
+        type: 'ASSET_ASSIGNED',
+        title,
+        message,
+        link,
+        metadata: {
+          assetId: data.assetId,
+          serialNumber: data.serialNumber,
+          isReclaim: true
+        }
+      });
+    } catch (error) {
+      logger.error('Error in notifyAssetReclaimed', { error });
+    }
+  }
+
+  /**
+   * 7. Triggered when a new Member joins an Organization via invitation.
+   * Target: Organization Owner & Admins.
+   */
+  async notifyMemberJoined(data: {
+    organizationId: string;
+    organizationName: string;
+    newMember: { id: string; firstName: string; lastName: string; email: string };
+    roleName: string;
+  }) {
+    try {
+      const members = await prisma.organizationMembership.findMany({
+        where: {
+          organizationId: data.organizationId,
+          isActive: true,
+          role: {
+            name: { in: ['OWNER', 'ADMIN'] }
+          }
+        },
+        include: {
+          user: {
+            select: { id: true, email: true, firstName: true, lastName: true, isActive: true }
+          }
+        }
+      });
+
+      const memberFullName = `${data.newMember.firstName} ${data.newMember.lastName}`.trim();
+      const title = `New Team Member Joined`;
+      const message = `${memberFullName} (${data.newMember.email}) has joined ${data.organizationName} as ${data.roleName}.`;
+      const link = '/employees';
+
+      const eligibleAdmins = members.filter(
+        (m) => m.user && m.user.id !== data.newMember.id && m.user.isActive
+      );
+
+      const notificationInputs: DispatchNotificationInput[] = eligibleAdmins.map((m) => ({
+        userId: m.user.id,
+        organizationId: data.organizationId,
+        actorId: data.newMember.id,
+        type: 'SYSTEM',
+        title,
+        message,
+        link,
+        metadata: {
+          newMemberId: data.newMember.id,
+          roleName: data.roleName
+        }
+      }));
+
+      await this.createAndDispatchMany(notificationInputs);
+    } catch (error) {
+      logger.error('Error in notifyMemberJoined', { error });
     }
   }
 }

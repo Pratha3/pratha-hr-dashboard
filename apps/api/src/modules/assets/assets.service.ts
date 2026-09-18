@@ -213,8 +213,17 @@ export class AssetsService {
       }
     });
 
-    // Notify employee of asset assignment
-    if (!isReclaim && input.assignedToId) {
+    // Notify employee of asset assignment or reclaim
+    if (isReclaim && asset.assignedToId) {
+      notificationsService.notifyAssetReclaimed({
+        assetId: id,
+        assetName: asset.name,
+        serialNumber: asset.serialNumber,
+        userId: asset.assignedToId,
+        actorId,
+        organizationId
+      }).catch(() => {});
+    } else if (!isReclaim && input.assignedToId) {
       notificationsService.notifyAssetAssigned({
         assetId: id,
         assetName: asset.name,

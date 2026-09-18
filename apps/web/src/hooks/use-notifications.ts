@@ -49,15 +49,15 @@ export function useNotifications() {
     }
   }, [user]);
 
-  // Mark single as read
+  // Mark single notification as read
   const markAsRead = useCallback(async (id: string) => {
-    try {
-      // Optimistic update
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true, readAt: new Date() } : n))
-      );
-      setUnreadCount((count) => Math.max(0, count - 1));
+    // Optimistic update
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n))
+    );
+    setUnreadCount((count) => Math.max(0, count - 1));
 
+    try {
       await apiClient.patch(`/notifications/${id}/read`);
     } catch (err) {
       console.error('Failed to mark notification as read', err);
@@ -65,14 +65,14 @@ export function useNotifications() {
     }
   }, [fetchUnreadCount]);
 
-  // Mark all as read
+  // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
-    try {
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, isRead: true, readAt: new Date() }))
-      );
-      setUnreadCount(0);
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
+    );
+    setUnreadCount(0);
 
+    try {
       await apiClient.post('/notifications/read-all');
       toast.success('All notifications marked as read');
     } catch (err) {
@@ -111,8 +111,17 @@ export function useNotifications() {
       es = new EventSource(streamUrl, { withCredentials: true });
       eventSourceRef.current = es;
 
+      es.onopen = () => {
+        // Resync unread count on successful connection/reconnection
+        fetchUnreadCount();
+      };
+
       es.onmessage = (event) => {
         try {
+          if (!event.data || event.data.trim() === '' || event.data.startsWith(':')) {
+            return;
+          }
+
           const payload = JSON.parse(event.data);
 
           if (payload.type === 'INIT') {
@@ -122,23 +131,40 @@ export function useNotifications() {
           } else if (payload.type === 'NOTIFICATION' && payload.data) {
             const newNotif: NotificationDto = payload.data;
 
-            // Prepend new notification
-            setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
-            setUnreadCount((prev) => prev + 1);
+            // If notification is org-specific, only display in current org context (or if global)
+            const isRelevantToCurrentView =
+              !activeOrgId || !newNotif.organizationId || newNotif.organizationId === activeOrgId;
 
-            // Pop toast alert with action
+            if (isRelevantToCurrentView) {
+              setNotifications((prev) => [newNotif, ...prev.filter((n) => n.id !== newNotif.id)]);
+              setUnreadCount((prev) => prev + 1);
+            }
+
+            // Pop real-time toast alert
             toast(newNotif.title, {
               description: newNotif.message,
+              action: newNotif.link
+                ? {
+                    label: 'View',
+                    onClick: () => {
+                      if (!newNotif.isRead) {
+                        markAsRead(newNotif.id);
+                      }
+                      if (typeof window !== 'undefined' && newNotif.link) {
+                        window.location.href = newNotif.link;
+                      }
+                    }
+                  }
+                : undefined,
               duration: 6000
             });
           }
         } catch {
-          // Heartbeat or ping event
+          // Heartbeat or malformed JSON
         }
       };
 
       es.onerror = () => {
-        // SSE error or reconnecting
         if (es?.readyState === EventSource.CLOSED) {
           console.warn('Notification stream closed. Retrying in background...');
         }
@@ -147,7 +173,7 @@ export function useNotifications() {
       console.error('Failed to open SSE notification connection', e);
     }
 
-    // Safety fallback: Poll unread count every 45s
+    // Safety fallback: Poll unread count periodically every 45s
     const pollInterval = setInterval(() => {
       fetchUnreadCount();
     }, 45000);
@@ -159,7 +185,7 @@ export function useNotifications() {
       }
       eventSourceRef.current = null;
     };
-  }, [user, activeOrgId, fetchNotifications, fetchUnreadCount]);
+  }, [user, activeOrgId, fetchNotifications, fetchUnreadCount, markAsRead]);
 
   return {
     notifications,
