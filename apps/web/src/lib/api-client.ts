@@ -15,6 +15,7 @@ export const apiClient = axios.create({
 
 let accessToken: string | null = null;
 let activeOrganizationId: string | null = null;
+let memoryCsrfToken: string | null = null;
 
 export function setAccessToken(token: string | null) {
   accessToken = token;
@@ -69,7 +70,7 @@ apiClient.interceptors.request.use(
     // Attach CSRF Token on mutating requests
     const method = config.method?.toUpperCase();
     if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      const csrfToken = getCookie('x-csrf-token');
+      const csrfToken = memoryCsrfToken || getCookie('x-csrf-token');
       if (csrfToken) {
         config.headers['x-csrf-token'] = csrfToken;
       }
@@ -99,7 +100,14 @@ const processQueue = (error: AxiosError | null) => {
 };
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Capture CSRF token from response headers if available
+    const headerCsrf = response.headers?.['x-csrf-token'];
+    if (headerCsrf) {
+      memoryCsrfToken = headerCsrf;
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -126,7 +134,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const csrfToken = getCookie('x-csrf-token');
+        const csrfToken = memoryCsrfToken || getCookie('x-csrf-token');
         const res = await axios.post(
           `${API_BASE_URL}/auth/refresh`,
           {},

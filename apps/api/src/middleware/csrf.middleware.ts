@@ -25,12 +25,15 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
   if (!csrfCookie) {
     csrfCookie = generateCsrfToken();
     res.cookie(CSRF_COOKIE_NAME, csrfCookie, {
-      httpOnly: false, // Must be readable by client JS to send in custom header
+      httpOnly: false, // Must be readable by client JS
       secure: env.COOKIE_SECURE,
       sameSite: 'lax',
       path: '/'
     });
   }
+
+  // Expose CSRF token in response header for cross-origin frontend clients
+  res.setHeader(CSRF_HEADER_NAME, csrfCookie);
 
   // Safe HTTP methods (GET, HEAD, OPTIONS) do not mutate state
   if (!MUTATING_METHODS.has(req.method.toUpperCase())) {
@@ -54,9 +57,15 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
+  // Requests authenticated with custom Authorization: Bearer tokens are protected against CSRF by CORS
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
   const headerToken = (req.headers[CSRF_HEADER_NAME] || req.headers['x-xsrf-token']) as string;
 
-  // On mutating requests, both the CSRF cookie and custom header MUST be present and match in constant time
+  // On mutating cookie-only requests, both the CSRF cookie and custom header MUST be present and match in constant time
   if (!existingCookie || !headerToken || !safeCompare(headerToken, existingCookie)) {
     return next(
       new AppError('Invalid or missing CSRF token', 403, 'CSRF_VALIDATION_FAILED')
@@ -65,4 +74,3 @@ export function csrfMiddleware(req: Request, res: Response, next: NextFunction):
 
   next();
 }
-
