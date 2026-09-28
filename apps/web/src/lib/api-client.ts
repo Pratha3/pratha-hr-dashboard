@@ -147,6 +147,9 @@ apiClient.interceptors.response.use(
         const newAccessToken = res.data?.data?.accessToken;
         if (newAccessToken) {
           setAccessToken(newAccessToken);
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          }
           processQueue(null);
           return apiClient(originalRequest);
         } else {
