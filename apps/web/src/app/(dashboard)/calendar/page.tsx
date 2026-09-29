@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/layout/page-header';
 import { AttendanceKPIs } from '@/components/calendar/attendance-kpis';
 import { CalendarToolbar } from '@/components/calendar/calendar-toolbar';
@@ -15,7 +16,9 @@ import {
   AttendanceStatus,
   AttendanceRecord,
   AttendanceFilterState,
-  AttendanceKPIData
+  AttendanceKPIData,
+  Employee,
+  CompanyHoliday
 } from '@/types/attendance';
 import {
   MOCK_EMPLOYEES,
@@ -23,19 +26,16 @@ import {
   getCompanyHolidays,
   formatDateKey
 } from '@/data/attendance-mock-data';
-import { CalendarRange, Download, Sparkles } from 'lucide-react';
+import { CalendarRange, Download, Sparkles, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiClient } from '@/lib/api-client';
 
 export default function CalendarPage() {
+  const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [viewMode, setViewMode] = useState<CalendarViewMode>('month');
-
-  // Master records state (loaded from realistic generator)
-  const [records, setRecords] = useState<AttendanceRecord[]>(() =>
-    generateInitialAttendanceRecords()
-  );
 
   // Filters state
   const [filters, setFilters] = useState<AttendanceFilterState>({
@@ -54,11 +54,162 @@ export default function CalendarPage() {
   const [requestModalOpen, setRequestModalOpen] = useState(false);
   const [requestDefaultDate, setRequestDefaultDate] = useState<string | null>(null);
 
-  // Holidays for current year
-  const holidays = useMemo(
-    () => getCompanyHolidays(currentDate.getFullYear()),
-    [currentDate]
-  );
+  // 1. Live Users Query
+  const { data: rawUsers = [] } = useQuery({
+    queryKey: ['calendar-users'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/users');
+        return res.data?.data || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  // 2. Live Attendance Records Query
+  const { data: rawAttendance = [] } = useQuery({
+    queryKey: ['calendar-attendance', currentDate.getFullYear(), currentDate.getMonth()],
+    queryFn: async () => {
+      try {
+        const start = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+        const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+        const res = await apiClient.get('/attendance', {
+          params: {
+            startDate: start.toISOString().split('T')[0],
+            endDate: end.toISOString().split('T')[0]
+          }
+        });
+        return res.data?.data || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  // 3. Live Leaves Query
+  const { data: rawLeaves = [] } = useQuery({
+    queryKey: ['calendar-leaves'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/leaves');
+        return res.data?.data || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  // 4. Live Holidays Query
+  const { data: rawHolidays = [] } = useQuery({
+    queryKey: ['calendar-holidays', currentDate.getFullYear()],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/holidays', {
+          params: { year: currentDate.getFullYear() }
+        });
+        return res.data?.data || [];
+      } catch {
+        return [];
+      }
+    }
+  });
+
+  // Formatted Employees List
+  const employees: Employee[] = useMemo(() => {
+    if (rawUsers.length > 0) {
+      return rawUsers.map((u: any) => ({
+        id: u.id,
+        name: `${u.firstName} ${u.lastName}`,
+        avatar:
+          u.profileImageUrl ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(u.firstName + u.lastName)}`,
+        department: u.department?.name || 'General',
+        role: u.position || 'Team Member',
+        email: u.email
+      }));
+    }
+    return MOCK_EMPLOYEES as any;
+  }, [rawUsers]);
+
+  // Formatted Holidays List
+  const holidays: CompanyHoliday[] = useMemo(() => {
+    if (rawHolidays.length > 0) {
+      return rawHolidays.map((h: any) => ({
+        id: h.id,
+        name: h.name,
+        date: typeof h.date === 'string' ? h.date.split('T')[0] : h.date,
+        type: 'company' as const
+      }));
+    }
+    return getCompanyHolidays(currentDate.getFullYear());
+  }, [rawHolidays, currentDate]);
+
+  // Combined Live Records
+  const records: AttendanceRecord[] = useMemo(() => {
+    const combined: AttendanceRecord[] = [];
+
+    // 1. Process real attendance records
+    if (rawAttendance.length > 0) {
+      rawAttendance.forEach((att: any) => {
+        const emp = employees.find((e) => e.id === att.userId);
+        const statusMap: Record<string, AttendanceStatus> = {
+          IN_OFFICE: 'in-office',
+          WFH: 'wfh',
+          HALF_DAY: 'wfh',
+          ON_DUTY: 'in-office',
+          ABSENT: 'sick'
+        };
+
+        combined.push({
+          id: att.id,
+          employeeId: att.userId,
+          employeeName: emp ? emp.name : `${att.user?.firstName || 'User'} ${att.user?.lastName || ''}`.trim(),
+          employeeAvatar: emp ? emp.avatar : `https://api.dicebear.com/7.x/avataaars/svg?seed=${att.userId}`,
+          department: emp ? emp.department : att.user?.department?.name || 'Engineering',
+          date: typeof att.date === 'string' ? att.date.split('T')[0] : att.date,
+          status: statusMap[att.status] || 'in-office',
+          notes: att.notes || undefined
+        });
+      });
+    }
+
+    // 2. Process approved leaves
+    if (rawLeaves.length > 0) {
+      rawLeaves.forEach((lv: any) => {
+        if (lv.status === 'APPROVED' || lv.status === 'PENDING') {
+          const emp = employees.find((e) => e.id === lv.userId);
+          const start = new Date(lv.startDate);
+          const end = new Date(lv.endDate);
+          const isSick = lv.leaveType?.name?.toLowerCase().includes('sick');
+
+          // Iterate through dates
+          const current = new Date(start);
+          while (current <= end) {
+            const dateStr = current.toISOString().split('T')[0];
+            combined.push({
+              id: `leave-${lv.id}-${dateStr}`,
+              employeeId: lv.userId,
+              employeeName: emp ? emp.name : `${lv.user?.firstName || 'User'} ${lv.user?.lastName || ''}`.trim(),
+              employeeAvatar: emp ? emp.avatar : `https://api.dicebear.com/7.x/avataaars/svg?seed=${lv.userId}`,
+              department: emp ? emp.department : 'General',
+              date: dateStr,
+              status: isSick ? 'sick' : 'pto',
+              notes: lv.reason || (isSick ? 'Sick Leave' : 'Planned PTO')
+            });
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      });
+    }
+
+    // If no backend records exist yet, fall back to mock generator
+    if (combined.length === 0) {
+      return generateInitialAttendanceRecords();
+    }
+
+    return combined;
+  }, [rawAttendance, rawLeaves, employees]);
 
   // Date navigation handlers
   const handleNavigatePrev = () => {
@@ -121,7 +272,7 @@ export default function CalendarPage() {
 
   // Filtered employees
   const filteredEmployees = useMemo(() => {
-    return MOCK_EMPLOYEES.filter((emp) => {
+    return employees.filter((emp) => {
       const matchDept =
         filters.department === 'All' || emp.department === filters.department;
       const matchSearch =
@@ -131,7 +282,7 @@ export default function CalendarPage() {
         emp.id.toLowerCase().includes(filters.searchQuery.toLowerCase());
       return matchDept && matchSearch;
     });
-  }, [filters]);
+  }, [filters, employees]);
 
   const filteredEmpIds = useMemo(
     () => new Set(filteredEmployees.map((e) => e.id)),
@@ -151,7 +302,7 @@ export default function CalendarPage() {
   const todayKey = formatDateKey(new Date());
   const kpiData: AttendanceKPIData = useMemo(() => {
     const todayRecords = records.filter((r) => r.date === todayKey);
-    const total = MOCK_EMPLOYEES.length;
+    const total = employees.length;
 
     const ptoCount = todayRecords.filter((r) => r.status === 'pto').length;
     const sickCount = todayRecords.filter((r) => r.status === 'sick').length;
@@ -196,13 +347,10 @@ export default function CalendarPage() {
     setRequestModalOpen(true);
   };
 
-  const handleSaveLeave = (newRecords: AttendanceRecord[]) => {
-    // Deduplicate by employeeId + date
-    const newKeys = new Set(newRecords.map((r) => `${r.employeeId}-${r.date}`));
-    setRecords((prev) => [
-      ...prev.filter((r) => !newKeys.has(`${r.employeeId}-${r.date}`)),
-      ...newRecords
-    ]);
+  const handleSaveLeave = (_newRecords: AttendanceRecord[]) => {
+    queryClient.invalidateQueries({ queryKey: ['calendar-leaves'] });
+    queryClient.invalidateQueries({ queryKey: ['calendar-attendance'] });
+    toast.success('Leave scheduled and synced with live calendar.');
   };
 
   const handleExport = () => {

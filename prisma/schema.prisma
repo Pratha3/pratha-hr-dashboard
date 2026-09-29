@@ -48,6 +48,14 @@ enum AssetStatus {
   RETIRED
 }
 
+enum AttendanceStatus {
+  IN_OFFICE
+  WFH
+  HALF_DAY
+  ON_DUTY
+  ABSENT
+}
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
@@ -79,6 +87,8 @@ model Organization {
   assets              Asset[]
   auditLogs           AuditLog[]
   notifications       Notification[]
+  attendanceRecords   AttendanceRecord[]
+  companyHolidays     CompanyHoliday[]
 
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
@@ -189,6 +199,7 @@ model User {
   assignedAssets      Asset[]
   notifications       Notification[]           @relation("UserNotifications")
   triggeredNotifications Notification[]        @relation("NotificationActor")
+  attendanceRecords   AttendanceRecord[]       @relation("UserAttendance")
 
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
@@ -484,6 +495,55 @@ model Notification {
   @@index([createdAt])
   @@map("notifications")
 }
+
+// ==========================================
+// 13. ATTENDANCE & TIME TRACKING
+// ==========================================
+model AttendanceRecord {
+  id                  String           @id @default(uuid()) @db.Uuid
+  organizationId      String           @db.Uuid
+  organization        Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId              String           @db.Uuid
+  user                User             @relation("UserAttendance", fields: [userId], references: [id], onDelete: Cascade)
+  date                DateTime         @db.Date
+  status              AttendanceStatus @default(IN_OFFICE)
+  clockIn             DateTime?
+  clockOut            DateTime?
+  workDurationMinutes Int?             @default(0)
+  notes               String?          @db.Text
+  ipAddress           String?          @db.VarChar(50)
+  location            String?          @db.VarChar(150)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@unique([organizationId, userId, date])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([date])
+  @@index([status])
+  @@map("attendance_records")
+}
+
+// ==========================================
+// 14. COMPANY HOLIDAYS
+// ==========================================
+model CompanyHoliday {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String        @db.VarChar(150)
+  date           DateTime      @db.Date
+  description    String?       @db.Text
+  isRecurring    Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([organizationId, date, name])
+  @@index([organizationId])
+  @@index([date])
+  @@map("company_holidays")
+}
+
 
 
 

@@ -51,6 +51,15 @@ const PERMISSIONS = [
   { name: 'ASSET_DELETE', description: 'Delete hardware records', module: 'ASSET' },
   { name: 'ASSET_ASSIGN', description: 'Assign or reclaim hardware for employees', module: 'ASSET' },
 
+  // Attendance & Time Tracking
+  { name: 'ATTENDANCE_READ', description: 'View personal and team attendance logs', module: 'ATTENDANCE' },
+  { name: 'ATTENDANCE_RECORD', description: 'Clock in and out for daily work shift', module: 'ATTENDANCE' },
+  { name: 'ATTENDANCE_MANAGE', description: 'Modify and adjust attendance records for all staff', module: 'ATTENDANCE' },
+
+  // Company Holidays
+  { name: 'HOLIDAY_READ', description: 'View company holidays calendar', module: 'HOLIDAY' },
+  { name: 'HOLIDAY_MANAGE', description: 'Create and edit company holidays', module: 'HOLIDAY' },
+
   // Dashboard & Audit
   { name: 'DASHBOARD_READ', description: 'View dashboard analytics and statistics', module: 'DASHBOARD' },
   { name: 'AUDIT_READ', description: 'View audit logs', module: 'AUDIT' }
@@ -68,6 +77,11 @@ const HR_PERMISSIONS = [
   'LEAVE_READ',
   'LEAVE_APPLY',
   'LEAVE_MANAGE',
+  'ATTENDANCE_READ',
+  'ATTENDANCE_RECORD',
+  'ATTENDANCE_MANAGE',
+  'HOLIDAY_READ',
+  'HOLIDAY_MANAGE',
   'ANNOUNCEMENT_READ',
   'ANNOUNCEMENT_CREATE',
   'PROJECT_READ',
@@ -87,6 +101,9 @@ const EMPLOYEE_PERMISSIONS = [
   'DEPARTMENT_READ',
   'LEAVE_READ',
   'LEAVE_APPLY',
+  'ATTENDANCE_READ',
+  'ATTENDANCE_RECORD',
+  'HOLIDAY_READ',
   'ANNOUNCEMENT_READ',
   'PROJECT_READ',
   'ASSET_READ',
@@ -683,6 +700,74 @@ async function main() {
       type: 'MOBILE_DEVICE',
       status: 'IN_REPAIR',
       notes: 'Sent to Apple authorized service for screen replacement.'
+    }
+  });
+
+  // 12. Seed Company Holidays
+  console.log('🌴 Seeding company holidays...');
+  await prisma.companyHoliday.deleteMany();
+  const currentYear = new Date().getFullYear();
+  await prisma.companyHoliday.createMany({
+    data: [
+      {
+        organizationId: defaultOrg.id,
+        name: "New Year's Day",
+        date: new Date(Date.UTC(currentYear, 0, 1)),
+        description: 'Global official holiday',
+        isRecurring: true
+      },
+      {
+        organizationId: defaultOrg.id,
+        name: 'Memorial Day',
+        date: new Date(Date.UTC(currentYear, 4, 25)),
+        description: 'Federal holiday',
+        isRecurring: false
+      },
+      {
+        organizationId: defaultOrg.id,
+        name: 'Independence Day',
+        date: new Date(Date.UTC(currentYear, 6, 4)),
+        description: 'National holiday',
+        isRecurring: true
+      },
+      {
+        organizationId: defaultOrg.id,
+        name: 'Labor Day',
+        date: new Date(Date.UTC(currentYear, 8, 7)),
+        description: 'Workers appreciation holiday',
+        isRecurring: false
+      },
+      {
+        organizationId: defaultOrg.id,
+        name: 'Thanksgiving Day',
+        date: new Date(Date.UTC(currentYear, 10, 26)),
+        description: 'Harvest celebration holiday',
+        isRecurring: false
+      },
+      {
+        organizationId: defaultOrg.id,
+        name: 'Christmas Day',
+        date: new Date(Date.UTC(currentYear, 11, 25)),
+        description: 'Annual winter holiday',
+        isRecurring: true
+      }
+    ]
+  });
+
+  // 13. Seed Starter Attendance Records
+  console.log('⏱️ Seeding sample attendance records...');
+  await prisma.attendanceRecord.deleteMany();
+  const todayDate = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()));
+  await prisma.attendanceRecord.create({
+    data: {
+      organizationId: defaultOrg.id,
+      userId: empUser.id,
+      date: todayDate,
+      status: 'IN_OFFICE',
+      clockIn: new Date(Date.now() - 4 * 3600 * 1000),
+      workDurationMinutes: 240,
+      location: 'Headquarters Office',
+      notes: 'Morning sprint planning'
     }
   });
 

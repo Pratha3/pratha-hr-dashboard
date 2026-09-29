@@ -40,6 +40,15 @@ export const Permissions = {
   ASSET_DELETE: 'ASSET_DELETE',
   ASSET_ASSIGN: 'ASSET_ASSIGN',
 
+  // Attendance & Time Tracking
+  ATTENDANCE_READ: 'ATTENDANCE_READ',
+  ATTENDANCE_RECORD: 'ATTENDANCE_RECORD',
+  ATTENDANCE_MANAGE: 'ATTENDANCE_MANAGE',
+
+  // Company Holidays
+  HOLIDAY_READ: 'HOLIDAY_READ',
+  HOLIDAY_MANAGE: 'HOLIDAY_MANAGE',
+
   // Dashboard & Audit
   DASHBOARD_READ: 'DASHBOARD_READ',
   AUDIT_READ: 'AUDIT_READ',
@@ -75,6 +84,11 @@ export const HR_PERMISSIONS: PermissionName[] = [
   Permissions.LEAVE_READ,
   Permissions.LEAVE_APPLY,
   Permissions.LEAVE_MANAGE,
+  Permissions.ATTENDANCE_READ,
+  Permissions.ATTENDANCE_RECORD,
+  Permissions.ATTENDANCE_MANAGE,
+  Permissions.HOLIDAY_READ,
+  Permissions.HOLIDAY_MANAGE,
   Permissions.ANNOUNCEMENT_READ,
   Permissions.ANNOUNCEMENT_CREATE,
   Permissions.PROJECT_READ,
@@ -94,6 +108,9 @@ export const EMPLOYEE_PERMISSIONS: PermissionName[] = [
   Permissions.DEPARTMENT_READ,
   Permissions.LEAVE_READ,
   Permissions.LEAVE_APPLY,
+  Permissions.ATTENDANCE_READ,
+  Permissions.ATTENDANCE_RECORD,
+  Permissions.HOLIDAY_READ,
   Permissions.ANNOUNCEMENT_READ,
   Permissions.PROJECT_READ,
   Permissions.ASSET_READ,
@@ -105,6 +122,7 @@ export const ALL_PERMISSIONS: PermissionName[] = Object.values(Permissions);
 // Enums
 export type EmployeeStatus = 'ACTIVE' | 'PROBATION' | 'NOTICE_PERIOD' | 'INACTIVE';
 export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+export type AttendanceStatus = 'IN_OFFICE' | 'WFH' | 'HALF_DAY' | 'ON_DUTY' | 'ABSENT';
 export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED';
 export type AssetType = 'LAPTOP' | 'MONITOR' | 'MOBILE_DEVICE' | 'SECURITY_KEY' | 'PERIPHERAL' | 'OTHER';
 export type AssetStatus = 'ASSIGNED' | 'AVAILABLE' | 'IN_REPAIR' | 'RETIRED';
@@ -472,5 +490,54 @@ export interface NotificationDto {
   metadata?: any;
   createdAt: Date | string;
 }
+
+// Attendance & Time Tracking DTOs
+export interface AttendanceRecordDto {
+  id: string;
+  organizationId: string;
+  userId: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    employeeCode?: string | null;
+    position?: string | null;
+    profileImageUrl?: string | null;
+    department?: {
+      id: string;
+      name: string;
+    } | null;
+  };
+  date: string;
+  status: AttendanceStatus;
+  clockIn?: Date | string | null;
+  clockOut?: Date | string | null;
+  workDurationMinutes?: number | null;
+  notes?: string | null;
+  ipAddress?: string | null;
+  location?: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface CompanyHolidayDto {
+  id: string;
+  organizationId: string;
+  name: string;
+  date: string;
+  description?: string | null;
+  isRecurring: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface TodayAttendanceStatusDto {
+  isClockedIn: boolean;
+  isClockedOut: boolean;
+  todayRecord: AttendanceRecordDto | null;
+  workDurationMinutes: number;
+}
+
 
 

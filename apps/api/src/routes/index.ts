@@ -11,6 +11,8 @@ import { assetsRouter } from '../modules/assets/assets.routes';
 import { organizationsRouter } from '../modules/organizations/organizations.routes';
 import { invitationsRouter } from '../modules/invitations/invitations.routes';
 import { notificationsRouter } from '../modules/notifications/notifications.routes';
+import { attendanceRouter } from '../modules/attendance/attendance.routes';
+import { holidaysRouter } from '../modules/holidays/holidays.routes';
 
 export const apiRouter = Router();
 
@@ -22,11 +24,14 @@ apiRouter.use('/notifications', notificationsRouter);
 apiRouter.use('/users', usersRouter);
 apiRouter.use('/departments', departmentsRouter);
 apiRouter.use('/leaves', leavesRouter);
+apiRouter.use('/attendance', attendanceRouter);
+apiRouter.use('/holidays', holidaysRouter);
 apiRouter.use('/announcements', announcementsRouter);
 apiRouter.use('/audit-logs', auditRouter);
 apiRouter.use('/dashboard', dashboardRouter);
 apiRouter.use('/projects', projectsRouter);
 apiRouter.use('/assets', assetsRouter);
+
 
 
 

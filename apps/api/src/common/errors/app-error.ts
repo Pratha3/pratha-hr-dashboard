@@ -34,6 +34,12 @@ export class ValidationError extends AppError {
   }
 }
 
+export class BadRequestError extends AppError {
+  constructor(message = 'Bad Request', details?: unknown) {
+    super(message, 400, 'BAD_REQUEST', details);
+  }
+}
+
 export class NotFoundError extends AppError {
   constructor(resource = 'Resource', details?: unknown) {
     super(`${resource} not found`, 404, 'NOT_FOUND', details);

@@ -391,5 +391,71 @@ export const switchOrganizationSchema = z.object({
 
 export type SwitchOrganizationInput = z.infer<typeof switchOrganizationSchema>;
 
+// ==================== ATTENDANCE & HOLIDAY SCHEMAS ====================
+
+export const attendanceStatusEnum = z.enum([
+  'IN_OFFICE',
+  'WFH',
+  'HALF_DAY',
+  'ON_DUTY',
+  'ABSENT'
+]);
+
+export const clockInSchema = z.object({
+  status: attendanceStatusEnum.default('IN_OFFICE').optional(),
+  location: z.string().max(150).optional(),
+  notes: z.string().max(500).optional()
+});
+
+export type ClockInInput = z.infer<typeof clockInSchema>;
+
+export const clockOutSchema = z.object({
+  notes: z.string().max(500).optional()
+});
+
+export type ClockOutInput = z.infer<typeof clockOutSchema>;
+
+export const attendanceQuerySchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  departmentId: z.string().uuid().optional(),
+  userId: z.string().uuid().optional(),
+  status: attendanceStatusEnum.optional()
+});
+
+export type AttendanceQueryInput = z.infer<typeof attendanceQuerySchema>;
+
+export const manualAttendanceSchema = z.object({
+  userId: z.string().uuid('Valid user ID is required'),
+  date: z.string({ required_error: 'Date is required' }),
+  status: attendanceStatusEnum.default('IN_OFFICE'),
+  clockIn: z.string().datetime().optional().nullable(),
+  clockOut: z.string().datetime().optional().nullable(),
+  workDurationMinutes: z.number().int().min(0).max(1440).optional().nullable(),
+  notes: z.string().max(500).optional().nullable(),
+  location: z.string().max(150).optional().nullable()
+});
+
+export type ManualAttendanceInput = z.infer<typeof manualAttendanceSchema>;
+
+export const createHolidaySchema = z.object({
+  name: z.string({ required_error: 'Holiday name is required' }).trim().min(2).max(150),
+  date: z.string({ required_error: 'Holiday date is required' }),
+  description: z.string().max(500).optional().nullable(),
+  isRecurring: z.boolean().default(false).optional()
+});
+
+export type CreateHolidayInput = z.infer<typeof createHolidaySchema>;
+
+export const updateHolidaySchema = z.object({
+  name: z.string().trim().min(2).max(150).optional(),
+  date: z.string().optional(),
+  description: z.string().max(500).optional().nullable(),
+  isRecurring: z.boolean().optional()
+});
+
+export type UpdateHolidayInput = z.infer<typeof updateHolidaySchema>;
+
+
 
 

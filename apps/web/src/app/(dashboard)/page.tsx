@@ -32,6 +32,7 @@ import {
 import Link from 'next/link';
 import { apiClient } from '@/lib/api-client';
 import { Permissions } from '@ems/shared-types';
+import { ClockInWidget } from '@/components/attendance/clock-in-widget';
 
 export default function DashboardOverviewPage() {
   const { user, permissions, hasPermission } = useAuth();
@@ -137,6 +138,9 @@ export default function DashboardOverviewPage() {
           )}
         </div>
       </PageHeader>
+
+      {/* Daily Shift & Attendance Quick Check-In */}
+      <ClockInWidget />
 
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
