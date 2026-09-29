@@ -456,6 +456,59 @@ export const updateHolidaySchema = z.object({
 
 export type UpdateHolidayInput = z.infer<typeof updateHolidaySchema>;
 
+// ==================== PAYROLL & COMPENSATION SCHEMAS ====================
+
+export const payrollStatusEnum = z.enum(['DRAFT', 'PROCESSING', 'APPROVED', 'PAID']);
+export const payslipStatusEnum = z.enum(['PENDING', 'PROCESSED', 'PAID']);
+
+export const generatePayrollSchema = z.object({
+  month: z.number().int().min(1).max(12),
+  year: z.number().int().min(2000).max(2100),
+  notes: z.string().max(500).optional().nullable()
+});
+
+export type GeneratePayrollInput = z.infer<typeof generatePayrollSchema>;
+
+export const updatePayrollStatusSchema = z.object({
+  status: payrollStatusEnum
+});
+
+export type UpdatePayrollStatusInput = z.infer<typeof updatePayrollStatusSchema>;
+
+export const updatePayslipSchema = z.object({
+  basicSalary: z.number().min(0).optional(),
+  hra: z.number().min(0).optional(),
+  allowances: z.number().min(0).optional(),
+  bonus: z.number().min(0).optional(),
+  taxDeduction: z.number().min(0).optional(),
+  providentFund: z.number().min(0).optional(),
+  otherDeductions: z.number().min(0).optional(),
+  status: payslipStatusEnum.optional(),
+  paymentMethod: z.string().max(50).optional().nullable(),
+  notes: z.string().max(500).optional().nullable()
+});
+
+export type UpdatePayslipInput = z.infer<typeof updatePayslipSchema>;
+
+export const payrollQuerySchema = z.object({
+  year: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
+  month: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
+  status: payrollStatusEnum.optional()
+});
+
+export type PayrollQueryInput = z.infer<typeof payrollQuerySchema>;
+
+export const payslipQuerySchema = z.object({
+  year: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
+  month: z.string().optional().transform((val) => (val ? parseInt(val, 10) : undefined)),
+  userId: z.string().uuid().optional(),
+  departmentId: z.string().uuid().optional(),
+  status: payslipStatusEnum.optional()
+});
+
+export type PayslipQueryInput = z.infer<typeof payslipQuerySchema>;
+
+
 
 
 

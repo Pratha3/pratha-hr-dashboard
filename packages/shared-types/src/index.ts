@@ -49,6 +49,13 @@ export const Permissions = {
   HOLIDAY_READ: 'HOLIDAY_READ',
   HOLIDAY_MANAGE: 'HOLIDAY_MANAGE',
 
+  // Payroll & Compensation
+  PAYROLL_READ: 'PAYROLL_READ',
+  PAYROLL_MANAGE: 'PAYROLL_MANAGE',
+  PAYROLL_GENERATE: 'PAYROLL_GENERATE',
+  PAYSLIP_READ_SELF: 'PAYSLIP_READ_SELF',
+  PAYSLIP_READ_ALL: 'PAYSLIP_READ_ALL',
+
   // Dashboard & Audit
   DASHBOARD_READ: 'DASHBOARD_READ',
   AUDIT_READ: 'AUDIT_READ',
@@ -89,6 +96,11 @@ export const HR_PERMISSIONS: PermissionName[] = [
   Permissions.ATTENDANCE_MANAGE,
   Permissions.HOLIDAY_READ,
   Permissions.HOLIDAY_MANAGE,
+  Permissions.PAYROLL_READ,
+  Permissions.PAYROLL_MANAGE,
+  Permissions.PAYROLL_GENERATE,
+  Permissions.PAYSLIP_READ_SELF,
+  Permissions.PAYSLIP_READ_ALL,
   Permissions.ANNOUNCEMENT_READ,
   Permissions.ANNOUNCEMENT_CREATE,
   Permissions.PROJECT_READ,
@@ -111,6 +123,7 @@ export const EMPLOYEE_PERMISSIONS: PermissionName[] = [
   Permissions.ATTENDANCE_READ,
   Permissions.ATTENDANCE_RECORD,
   Permissions.HOLIDAY_READ,
+  Permissions.PAYSLIP_READ_SELF,
   Permissions.ANNOUNCEMENT_READ,
   Permissions.PROJECT_READ,
   Permissions.ASSET_READ,
@@ -127,6 +140,8 @@ export type ProjectStatus = 'PLANNING' | 'ACTIVE' | 'ON_HOLD' | 'COMPLETED';
 export type AssetType = 'LAPTOP' | 'MONITOR' | 'MOBILE_DEVICE' | 'SECURITY_KEY' | 'PERIPHERAL' | 'OTHER';
 export type AssetStatus = 'ASSIGNED' | 'AVAILABLE' | 'IN_REPAIR' | 'RETIRED';
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
+export type PayrollStatus = 'DRAFT' | 'PROCESSING' | 'APPROVED' | 'PAID';
+export type PayslipPaymentStatus = 'PENDING' | 'PROCESSED' | 'PAID';
 
 // Standard API Response Interfaces
 export interface ApiResponseMeta {
@@ -538,6 +553,74 @@ export interface TodayAttendanceStatusDto {
   todayRecord: AttendanceRecordDto | null;
   workDurationMinutes: number;
 }
+
+// Payroll & Compensation DTOs
+export interface PayslipDto {
+  id: string;
+  organizationId: string;
+  payrollRunId?: string | null;
+  userId: string;
+  user?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    employeeCode?: string | null;
+    position?: string | null;
+    profileImageUrl?: string | null;
+    department?: {
+      id: string;
+      name: string;
+    } | null;
+  };
+  month: number;
+  year: number;
+  basicSalary: number;
+  hra: number;
+  allowances: number;
+  bonus: number;
+  taxDeduction: number;
+  providentFund: number;
+  otherDeductions: number;
+  grossSalary: number;
+  netSalary: number;
+  paymentMethod?: string | null;
+  status: PayslipPaymentStatus;
+  paidAt?: Date | string | null;
+  notes?: string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface PayrollRunDto {
+  id: string;
+  organizationId: string;
+  month: number;
+  year: number;
+  status: PayrollStatus;
+  totalGross: number;
+  totalNet: number;
+  totalDeductions: number;
+  employeeCount: number;
+  processedAt?: Date | string | null;
+  paidAt?: Date | string | null;
+  notes?: string | null;
+  payslips?: PayslipDto[];
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface PayrollSummaryDto {
+  currentMonth: number;
+  currentYear: number;
+  totalMonthlyPayroll: number;
+  totalNetDisbursed: number;
+  totalDeductions: number;
+  totalEmployeesProcessed: number;
+  pendingPayslipsCount: number;
+  latestRun: PayrollRunDto | null;
+}
+
 
 
 

@@ -63,6 +63,19 @@ enum InvitationStatus {
   EXPIRED
 }
 
+enum PayrollStatus {
+  DRAFT
+  PROCESSING
+  APPROVED
+  PAID
+}
+
+enum PayslipPaymentStatus {
+  PENDING
+  PROCESSED
+  PAID
+}
+
 // ==========================================
 // 2. MULTI-TENANCY CORE
 // ==========================================
@@ -89,6 +102,8 @@ model Organization {
   notifications       Notification[]
   attendanceRecords   AttendanceRecord[]
   companyHolidays     CompanyHoliday[]
+  payrollRuns         PayrollRun[]
+  payslips            Payslip[]
 
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
@@ -200,6 +215,7 @@ model User {
   notifications       Notification[]           @relation("UserNotifications")
   triggeredNotifications Notification[]        @relation("NotificationActor")
   attendanceRecords   AttendanceRecord[]       @relation("UserAttendance")
+  payslips            Payslip[]                @relation("UserPayslips")
 
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
@@ -543,6 +559,70 @@ model CompanyHoliday {
   @@index([date])
   @@map("company_holidays")
 }
+
+// ==========================================
+// 15. PAYROLL & COMPENSATION
+// ==========================================
+model PayrollRun {
+  id              String        @id @default(uuid()) @db.Uuid
+  organizationId  String        @db.Uuid
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  month           Int
+  year            Int
+  status          PayrollStatus @default(DRAFT)
+  totalGross      Float         @default(0)
+  totalNet        Float         @default(0)
+  totalDeductions Float         @default(0)
+  employeeCount   Int           @default(0)
+  processedAt     DateTime?
+  paidAt          DateTime?
+  notes           String?       @db.Text
+  payslips        Payslip[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([organizationId, year, month])
+  @@index([organizationId])
+  @@index([year, month])
+  @@index([status])
+  @@map("payroll_runs")
+}
+
+model Payslip {
+  id              String               @id @default(uuid()) @db.Uuid
+  organizationId  String               @db.Uuid
+  organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payrollRunId    String?              @db.Uuid
+  payrollRun      PayrollRun?          @relation(fields: [payrollRunId], references: [id], onDelete: SetNull)
+  userId          String               @db.Uuid
+  user            User                 @relation("UserPayslips", fields: [userId], references: [id], onDelete: Cascade)
+  month           Int
+  year            Int
+  basicSalary     Float                @default(0)
+  hra             Float                @default(0)
+  allowances      Float                @default(0)
+  bonus           Float                @default(0)
+  taxDeduction    Float                @default(0)
+  providentFund   Float                @default(0)
+  otherDeductions Float                @default(0)
+  grossSalary     Float                @default(0)
+  netSalary       Float                @default(0)
+  paymentMethod   String?              @default("Direct Deposit") @db.VarChar(50)
+  status          PayslipPaymentStatus @default(PENDING)
+  paidAt          DateTime?
+  notes           String?              @db.Text
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@unique([organizationId, userId, year, month])
+  @@index([organizationId])
+  @@index([userId])
+  @@index([payrollRunId])
+  @@index([year, month])
+  @@index([status])
+  @@map("payslips")
+}
+
 
 
 

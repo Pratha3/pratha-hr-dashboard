@@ -60,6 +60,13 @@ const PERMISSIONS = [
   { name: 'HOLIDAY_READ', description: 'View company holidays calendar', module: 'HOLIDAY' },
   { name: 'HOLIDAY_MANAGE', description: 'Create and edit company holidays', module: 'HOLIDAY' },
 
+  // Payroll & Compensation
+  { name: 'PAYROLL_READ', description: 'View company payroll batches and summaries', module: 'PAYROLL' },
+  { name: 'PAYROLL_MANAGE', description: 'Adjust salary structures and approve payouts', module: 'PAYROLL' },
+  { name: 'PAYROLL_GENERATE', description: 'Execute automated monthly salary computation runs', module: 'PAYROLL' },
+  { name: 'PAYSLIP_READ_SELF', description: 'View and download personal digital payslip vouchers', module: 'PAYROLL' },
+  { name: 'PAYSLIP_READ_ALL', description: 'View all workforce payslip records across company', module: 'PAYROLL' },
+
   // Dashboard & Audit
   { name: 'DASHBOARD_READ', description: 'View dashboard analytics and statistics', module: 'DASHBOARD' },
   { name: 'AUDIT_READ', description: 'View audit logs', module: 'AUDIT' }
@@ -82,6 +89,11 @@ const HR_PERMISSIONS = [
   'ATTENDANCE_MANAGE',
   'HOLIDAY_READ',
   'HOLIDAY_MANAGE',
+  'PAYROLL_READ',
+  'PAYROLL_MANAGE',
+  'PAYROLL_GENERATE',
+  'PAYSLIP_READ_SELF',
+  'PAYSLIP_READ_ALL',
   'ANNOUNCEMENT_READ',
   'ANNOUNCEMENT_CREATE',
   'PROJECT_READ',
@@ -104,6 +116,7 @@ const EMPLOYEE_PERMISSIONS = [
   'ATTENDANCE_READ',
   'ATTENDANCE_RECORD',
   'HOLIDAY_READ',
+  'PAYSLIP_READ_SELF',
   'ANNOUNCEMENT_READ',
   'PROJECT_READ',
   'ASSET_READ',
@@ -768,6 +781,97 @@ async function main() {
       workDurationMinutes: 240,
       location: 'Headquarters Office',
       notes: 'Morning sprint planning'
+    }
+  });
+
+  // 14. Seed Sample Payroll Run & Payslips
+  console.log('💵 Seeding sample payroll run & payslips...');
+  await prisma.payslip.deleteMany();
+  await prisma.payrollRun.deleteMany();
+  const currentMonth = new Date().getMonth() + 1;
+  const sampleRun = await prisma.payrollRun.create({
+    data: {
+      organizationId: defaultOrg.id,
+      month: currentMonth,
+      year: currentYear,
+      status: 'PAID',
+      totalGross: 24500,
+      totalNet: 21560,
+      totalDeductions: 2940,
+      employeeCount: 3,
+      processedAt: new Date(),
+      paidAt: new Date(),
+      notes: 'Regular monthly salary disbursement batch'
+    }
+  });
+
+  // Seed payslip for employee
+  await prisma.payslip.create({
+    data: {
+      organizationId: defaultOrg.id,
+      payrollRunId: sampleRun.id,
+      userId: empUser.id,
+      month: currentMonth,
+      year: currentYear,
+      basicSalary: 4250,
+      hra: 2550,
+      allowances: 1700,
+      bonus: 500,
+      taxDeduction: 900,
+      providentFund: 212,
+      otherDeductions: 0,
+      grossSalary: 9000,
+      netSalary: 7888,
+      status: 'PAID',
+      paidAt: new Date(),
+      paymentMethod: 'Direct Deposit',
+      notes: 'Monthly salary voucher with quarterly performance bonus'
+    }
+  });
+
+  // Seed payslip for HR user
+  await prisma.payslip.create({
+    data: {
+      organizationId: defaultOrg.id,
+      payrollRunId: sampleRun.id,
+      userId: hrUser.id,
+      month: currentMonth,
+      year: currentYear,
+      basicSalary: 4000,
+      hra: 2400,
+      allowances: 1600,
+      bonus: 0,
+      taxDeduction: 800,
+      providentFund: 200,
+      otherDeductions: 0,
+      grossSalary: 8000,
+      netSalary: 7000,
+      status: 'PAID',
+      paidAt: new Date(),
+      paymentMethod: 'Direct Deposit'
+    }
+  });
+
+  // Seed payslip for Admin user
+  await prisma.payslip.create({
+    data: {
+      organizationId: defaultOrg.id,
+      payrollRunId: sampleRun.id,
+      userId: adminUser.id,
+      month: currentMonth,
+      year: currentYear,
+      basicSalary: 3750,
+      hra: 2250,
+      allowances: 1500,
+      bonus: 0,
+      taxDeduction: 750,
+      providentFund: 188,
+      otherDeductions: 0,
+      grossSalary: 7500,
+      netSalary: 6562,
+      status: 'PAID',
+      paidAt: new Date(),
+      paymentMethod: 'Direct Deposit'
     }
   });
 

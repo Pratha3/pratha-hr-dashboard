@@ -13,6 +13,7 @@ import { invitationsRouter } from '../modules/invitations/invitations.routes';
 import { notificationsRouter } from '../modules/notifications/notifications.routes';
 import { attendanceRouter } from '../modules/attendance/attendance.routes';
 import { holidaysRouter } from '../modules/holidays/holidays.routes';
+import { payrollRouter } from '../modules/payroll/payroll.routes';
 
 export const apiRouter = Router();
 
@@ -26,6 +27,7 @@ apiRouter.use('/departments', departmentsRouter);
 apiRouter.use('/leaves', leavesRouter);
 apiRouter.use('/attendance', attendanceRouter);
 apiRouter.use('/holidays', holidaysRouter);
+apiRouter.use('/payroll', payrollRouter);
 apiRouter.use('/announcements', announcementsRouter);
 apiRouter.use('/audit-logs', auditRouter);
 apiRouter.use('/dashboard', dashboardRouter);

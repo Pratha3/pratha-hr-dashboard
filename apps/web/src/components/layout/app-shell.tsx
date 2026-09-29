@@ -9,6 +9,7 @@ import {
   Building2,
   CalendarCheck,
   CalendarRange,
+  Banknote,
   Megaphone,
   FolderKanban,
   Laptop,
@@ -92,6 +93,12 @@ const NAV_ITEMS: NavItem[] = [
     href: '/calendar',
     icon: CalendarRange,
     permission: Permissions.LEAVE_READ
+  },
+  {
+    label: 'Payroll & Payslips',
+    href: '/payroll',
+    icon: Banknote,
+    permission: Permissions.PAYSLIP_READ_SELF
   },
   {
     label: 'Announcements',
