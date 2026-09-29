@@ -27,7 +27,8 @@ import {
   Activity,
   Plus,
   FolderKanban,
-  Laptop
+  Laptop,
+  Banknote
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiClient } from '@/lib/api-client';
@@ -240,9 +241,15 @@ export default function DashboardOverviewPage() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">
-              <Link href="/leaves">
+              <Link href="/payroll">
+                <Banknote className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>Payroll & Payslips</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">
+              <Link href="/calendar">
                 <CalendarCheck className="h-3.5 w-3.5 text-muted-foreground" />
-                <span>Leave Management</span>
+                <span>Availability Calendar</span>
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8.5">

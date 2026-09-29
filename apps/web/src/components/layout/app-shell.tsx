@@ -97,8 +97,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: 'Payroll & Payslips',
     href: '/payroll',
-    icon: Banknote,
-    permission: Permissions.PAYSLIP_READ_SELF
+    icon: Banknote
   },
   {
     label: 'Announcements',

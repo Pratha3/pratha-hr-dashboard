@@ -190,12 +190,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const hasPermission = (permission: PermissionName): boolean => {
-    if (!user || !user.permissions) return false;
+    if (!user) return false;
+    const roleName = user.role?.name?.toUpperCase();
+    if (roleName === 'ADMIN' || roleName === 'OWNER') return true;
+    if (!user.permissions) return false;
     return user.permissions.includes(permission);
   };
 
   const hasAnyPermission = (perms: PermissionName[]): boolean => {
-    if (!user || !user.permissions) return false;
+    if (!user) return false;
+    const roleName = user.role?.name?.toUpperCase();
+    if (roleName === 'ADMIN' || roleName === 'OWNER') return true;
+    if (!user.permissions) return false;
     return perms.some((p) => user.permissions.includes(p));
   };
 
